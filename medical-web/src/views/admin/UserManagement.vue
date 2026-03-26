@@ -30,6 +30,10 @@
             搜索
           </el-button>
         </div>
+        <el-button class="add-user-btn" @click="openCreateDialog">
+          <i class="fa-solid fa-user-plus"></i>
+          新增用户
+        </el-button>
       </div>
 
       <!-- 表格 -->
@@ -118,9 +122,120 @@
 
     <!-- 编辑用户对话框 -->
     <el-dialog
+      v-model="createDialogVisible"
+      width="520px"
+      class="user-mgmt-dialog create-dialog"
+      :close-on-click-modal="false"
+      align-center
+      @close="resetCreateForm"
+    >
+      <template #header>
+        <div class="edit-dialog-header">
+          <i class="fa-solid fa-user-plus dialog-icon"></i>
+          <div>
+            <span class="dialog-title">新增用户</span>
+            <span class="dialog-subtitle">填写账号信息并分配角色</span>
+          </div>
+        </div>
+      </template>
+      <el-form
+        ref="createFormRef"
+        :model="createForm"
+        :rules="createRules"
+        label-position="top"
+        class="edit-form"
+      >
+        <el-form-item label="用户名" prop="username" required>
+          <el-input
+            v-model="createForm.username"
+            placeholder="3～32 个字符"
+            maxlength="32"
+            clearable
+            class="form-input"
+            autocomplete="off"
+          />
+        </el-form-item>
+        <el-form-item label="密码" prop="password" required>
+          <el-input
+            v-model="createForm.password"
+            type="password"
+            placeholder="至少 6 位"
+            show-password
+            maxlength="64"
+            class="form-input"
+            autocomplete="new-password"
+          />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword" required>
+          <el-input
+            v-model="createForm.confirmPassword"
+            type="password"
+            placeholder="再次输入密码"
+            show-password
+            maxlength="64"
+            class="form-input"
+            autocomplete="new-password"
+          />
+        </el-form-item>
+        <el-form-item label="姓名" prop="name">
+          <el-input
+            v-model="createForm.name"
+            placeholder="留空则默认与用户名相同"
+            maxlength="50"
+            show-word-limit
+            class="form-input"
+          />
+        </el-form-item>
+        <el-form-item label="手机号" prop="mobilePhone">
+          <el-input
+            v-model="createForm.mobilePhone"
+            placeholder="选填，11 位手机号"
+            maxlength="11"
+            clearable
+            class="form-input"
+          />
+        </el-form-item>
+        <el-form-item label="邮箱" prop="email">
+          <el-input
+            v-model="createForm.email"
+            placeholder="选填"
+            maxlength="100"
+            clearable
+            class="form-input"
+          />
+        </el-form-item>
+        <el-form-item label="角色" prop="roleIds" required>
+          <el-select
+            v-model="createForm.roleIds"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="请选择角色（可多选）"
+            class="role-select"
+          >
+            <el-option
+              v-for="r in roleOptions"
+              :key="r.roleId"
+              :label="`${r.roleName} (${r.roleCode})`"
+              :value="r.roleId"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="edit-dialog-footer">
+          <el-button class="btn-cancel" @click="createDialogVisible = false">取消</el-button>
+          <el-button class="btn-save" :loading="createSubmitting" @click="submitCreate">
+            确定
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog
       v-model="editDialogVisible"
       width="440px"
-      class="edit-dialog"
+      class="user-mgmt-dialog"
       :close-on-click-modal="false"
       align-center
       @close="resetEditForm"
@@ -161,9 +276,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUserPage, updateUser, updateUserStatus } from '@/api/admin'
+import { getUserPage, getRoleList, createUser, updateUser, updateUserStatus } from '@/api/admin'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -184,6 +299,144 @@ const editForm = ref({
 })
 const editRules = {
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }]
+}
+
+const createDialogVisible = ref(false)
+const createFormRef = ref(null)
+const createSubmitting = ref(false)
+const roleOptions = ref([])
+const createForm = reactive({
+  username: '',
+  password: '',
+  confirmPassword: '',
+  name: '',
+  mobilePhone: '',
+  email: '',
+  roleIds: []
+})
+
+const createRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 32, message: '用户名为 3～32 个字符', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, max: 64, message: '密码为 6～64 个字符', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入密码', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value !== createForm.password) {
+          callback(new Error('两次输入的密码不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  name: [{ max: 50, message: '姓名最多 50 个字符', trigger: 'blur' }],
+  mobilePhone: [
+    {
+      validator: (_rule, value, callback) => {
+        if (!value || String(value).trim() === '') {
+          callback()
+          return
+        }
+        if (!/^1\d{10}$/.test(String(value).trim())) {
+          callback(new Error('请输入 11 位有效手机号'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  email: [
+    {
+      validator: (_rule, value, callback) => {
+        if (!value || String(value).trim() === '') {
+          callback()
+          return
+        }
+        const v = String(value).trim()
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+          callback(new Error('邮箱格式不正确'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  roleIds: [
+    {
+      type: 'array',
+      required: true,
+      message: '请至少选择一个角色',
+      trigger: 'change'
+    },
+    {
+      type: 'array',
+      min: 1,
+      message: '请至少选择一个角色',
+      trigger: 'change'
+    }
+  ]
+}
+
+const loadRoleOptions = async () => {
+  try {
+    const list = await getRoleList()
+    roleOptions.value = (list || []).filter((r) => r.status === 1)
+  } catch {
+    roleOptions.value = []
+  }
+}
+
+const openCreateDialog = async () => {
+  await loadRoleOptions()
+  createDialogVisible.value = true
+}
+
+const resetCreateForm = () => {
+  createForm.username = ''
+  createForm.password = ''
+  createForm.confirmPassword = ''
+  createForm.name = ''
+  createForm.mobilePhone = ''
+  createForm.email = ''
+  createForm.roleIds = []
+  createFormRef.value?.resetFields()
+}
+
+const submitCreate = async () => {
+  try {
+    await createFormRef.value?.validate()
+  } catch {
+    return
+  }
+  createSubmitting.value = true
+  try {
+    const payload = {
+      username: createForm.username.trim(),
+      password: createForm.password,
+      name: createForm.name.trim() || undefined,
+      mobilePhone: createForm.mobilePhone.trim() || undefined,
+      email: createForm.email.trim() || undefined,
+      roleIds: [...createForm.roleIds]
+    }
+    await createUser(payload)
+    ElMessage.success('新增用户成功')
+    createDialogVisible.value = false
+    loadData()
+  } catch (e) {
+    // 错误已由 request 拦截器处理
+  } finally {
+    createSubmitting.value = false
+  }
 }
 
 const headerCellStyle = {
@@ -337,6 +590,11 @@ onMounted(() => {
 }
 
 .toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   padding: 18px 24px;
   border-bottom: 1px solid rgba(139, 90, 43, 0.1);
 }
@@ -346,6 +604,25 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   max-width: 420px;
+  flex: 1;
+  min-width: 220px;
+}
+
+.add-user-btn {
+  background: linear-gradient(135deg, #e8a54b, #d48232);
+  border: none;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(212, 130, 50, 0.3);
+  flex-shrink: 0;
+}
+
+.add-user-btn:hover {
+  background: linear-gradient(135deg, #f0b55c, #e08d3a);
+  color: #fff;
+  box-shadow: 0 5px 18px rgba(212, 130, 50, 0.4);
 }
 
 .search-icon {
@@ -516,8 +793,8 @@ onMounted(() => {
   color: #e8a54b;
 }
 
-/* 编辑对话框 - 整体风格 */
-.edit-dialog :deep(.el-dialog) {
+/* 用户表单对话框（新增 / 编辑） */
+.user-mgmt-dialog :deep(.el-dialog) {
   border-radius: 16px;
   overflow: hidden;
   background: rgba(255, 252, 250, 0.98);
@@ -525,23 +802,20 @@ onMounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 8px 40px rgba(61, 41, 20, 0.15), 0 0 0 1px rgba(139, 90, 43, 0.08);
 }
-.edit-dialog :deep(.el-overlay-dialog) {
-  backdrop-filter: blur(4px);
-}
-.edit-dialog :deep(.el-dialog__header) {
+.user-mgmt-dialog :deep(.el-dialog__header) {
   padding: 20px 24px;
   margin: 0;
   border-bottom: 1px solid rgba(139, 90, 43, 0.12);
   background: rgba(255, 250, 245, 0.5);
 }
-.edit-dialog :deep(.el-dialog__headerbtn) {
+.user-mgmt-dialog :deep(.el-dialog__headerbtn) {
   width: 36px;
   height: 36px;
   top: 18px;
   right: 20px;
   color: #8b5a2b;
 }
-.edit-dialog :deep(.el-dialog__headerbtn:hover) {
+.user-mgmt-dialog :deep(.el-dialog__headerbtn:hover) {
   color: #d48232;
   background: rgba(232, 165, 75, 0.15);
   border-radius: 8px;
@@ -575,8 +849,10 @@ onMounted(() => {
   margin-top: 2px;
 }
 
-.edit-dialog :deep(.el-dialog__body) {
+.user-mgmt-dialog :deep(.el-dialog__body) {
   padding: 24px 24px 8px;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
 }
 
 .edit-form :deep(.el-form-item) {
@@ -608,7 +884,18 @@ onMounted(() => {
   color: #5c4a32;
 }
 
-.edit-dialog :deep(.el-dialog__footer) {
+.edit-form :deep(.role-select) {
+  width: 100%;
+}
+
+.edit-form :deep(.role-select .el-input__wrapper) {
+  border-radius: 10px;
+  border: 1px solid rgba(139, 90, 43, 0.2);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: none;
+}
+
+.user-mgmt-dialog :deep(.el-dialog__footer) {
   padding: 16px 24px 24px;
   border-top: 1px solid rgba(139, 90, 43, 0.08);
 }

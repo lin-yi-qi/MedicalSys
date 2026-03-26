@@ -12,6 +12,17 @@ export function getUserPage(params) {
 }
 
 /**
+ * 新增用户（含角色）
+ */
+export function createUser(data) {
+  return request({
+    url: '/admin/user',
+    method: 'post',
+    data
+  })
+}
+
+/**
  * 更新用户信息
  */
 export function updateUser(id, data) {
