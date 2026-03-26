@@ -4,6 +4,16 @@ body {
   font-family: "微软雅黑", "PingFang SC", "Arial", "Helvetica Neue", Helvetica, sans-serif;
 }
 
+/*
+ * Element 弹窗/MessageBox 开启 lockScroll 时只锁住 body，本系统主区域滚动在 .el-main.main-content 上。
+ * 弹窗打开时禁止主区域滚动，避免遮罩与内容错位、底部露一条未压暗。
+ */
+body.el-popup-parent--hidden .layout-container .main-content,
+body.el-popup-parent--hidden .layout-container .el-main {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
 /* 侧边栏收起时，子菜单弹出层使用深色主题（避免白底白字不可见） */
 .sidebar-menu-popup {
   background: rgba(61, 41, 20, 0.98) !important;
@@ -93,6 +103,15 @@ body {
   padding: 20px;
   overflow-y: auto;
   flex: 1;
+  /* 纵向 flex 子项默认 min-height:auto，大表格会把布局顶穿/滚动容器异常，影响遮罩与视口对齐 */
+  min-height: 0;
+  /* 隐藏滚动条，仍可用滚轮/触摸板滚动（避免出现整页式纵向滚动条） */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.el-main::-webkit-scrollbar {
+  display: none;
 }
 
 .el-footer {

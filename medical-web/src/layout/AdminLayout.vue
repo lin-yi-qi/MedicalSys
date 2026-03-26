@@ -36,12 +36,14 @@
 .main-wrapper {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 .main-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 </style>
