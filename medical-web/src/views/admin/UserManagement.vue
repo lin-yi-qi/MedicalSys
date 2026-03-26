@@ -73,13 +73,14 @@
           class="data-table"
           :header-cell-style="headerCellStyle"
           :row-class-name="tableRowClassName"
+          @sort-change="handleSortChange"
         >
-          <el-table-column prop="userId" label="用户ID" width="72" align="center">
+          <el-table-column prop="userId" label="ID" width="72" align="center" sortable="custom">
             <template #default="{ row }">
               <span class="cell-id">{{ row.userId }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="username" label="用户名" min-width="100">
+          <el-table-column prop="username" label="用户名" min-width="100" sortable="custom">
             <template #default="{ row }">
               <span class="cell-username clickable" @click="openUserDetail(row)">
                 {{ row.username }}
@@ -113,7 +114,7 @@
               <span class="status-text">{{ row.status === 1 ? '启用' : '禁用' }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="createdTime" label="创建时间" width="165" align="center">
+          <el-table-column prop="createdTime" label="创建时间" width="165" align="center" sortable="custom">
             <template #default="{ row }">
               <span class="cell-time">{{ row.createdTime }}</span>
             </template>
@@ -446,6 +447,8 @@ const total = ref(0)
 const keyword = ref('')
 const statusFilter = ref(null)
 const roleCodeFilter = ref('')
+const sortField = ref('userId')
+const sortOrder = ref('asc')
 
 const editDialogVisible = ref(false)
 const editFormRef = ref(null)
@@ -654,6 +657,20 @@ const tableRowClassName = ({ rowIndex }) => {
   return rowIndex % 2 === 1 ? 'striped-row' : ''
 }
 
+const handleSortChange = ({ prop, order }) => {
+  // order: ascending / descending / null
+  if (!prop) return
+  if (!order) {
+    sortField.value = 'userId'
+    sortOrder.value = 'asc'
+  } else {
+    sortField.value = prop
+    sortOrder.value = order === 'ascending' ? 'asc' : 'desc'
+  }
+  currentPage.value = 1
+  loadData()
+}
+
 const loadData = async () => {
   loading.value = true
   try {
@@ -662,7 +679,9 @@ const loadData = async () => {
       size: pageSize.value,
       keyword: keyword.value || undefined,
       status: statusFilter.value ?? undefined,
-      roleCode: roleCodeFilter.value || undefined
+      roleCode: roleCodeFilter.value || undefined,
+      sortField: sortField.value || undefined,
+      sortOrder: sortOrder.value || undefined
     })
     tableData.value = res.list || []
     total.value = res.total || 0

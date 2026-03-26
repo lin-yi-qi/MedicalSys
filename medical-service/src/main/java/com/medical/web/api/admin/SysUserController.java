@@ -51,7 +51,9 @@ public class SysUserController {
             @RequestParam(value = "size", defaultValue = "10") Long size,
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "status", required = false) Integer status,
-            @RequestParam(value = "roleCode", required = false) String roleCode) {
+            @RequestParam(value = "roleCode", required = false) String roleCode,
+            @RequestParam(value = "sortField", required = false) String sortField,
+            @RequestParam(value = "sortOrder", required = false) String sortOrder) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w.like(SysUser::getUsername, keyword)
@@ -92,7 +94,33 @@ public class SysUserController {
             }
             wrapper.in(SysUser::getUserId, userIds);
         }
-        wrapper.orderByDesc(SysUser::getCreatedTime);
+        // 动态排序（仅允许必要字段，避免 SQL 注入/不可控排序）
+        String sf = StringUtils.hasText(sortField) ? sortField : "createdTime";
+        boolean asc = "asc".equalsIgnoreCase(sortOrder) || "ascending".equalsIgnoreCase(sortOrder);
+        switch (sf) {
+            case "userId":
+                if (asc) {
+                    wrapper.orderByAsc(SysUser::getUserId);
+                } else {
+                    wrapper.orderByDesc(SysUser::getUserId);
+                }
+                break;
+            case "username":
+                if (asc) {
+                    wrapper.orderByAsc(SysUser::getUsername);
+                } else {
+                    wrapper.orderByDesc(SysUser::getUsername);
+                }
+                break;
+            case "createdTime":
+            default:
+                if (asc) {
+                    wrapper.orderByAsc(SysUser::getCreatedTime);
+                } else {
+                    wrapper.orderByDesc(SysUser::getCreatedTime);
+                }
+                break;
+        }
         Page<SysUser> page = sysUserMapper.selectPage(new Page<>(current, size), wrapper);
         List<UserListVo> voList = page.getRecords().stream().map(u -> {
             UserListVo vo = new UserListVo();
