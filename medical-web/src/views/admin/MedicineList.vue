@@ -2,10 +2,16 @@
   <div class="medicine-list-page">
     <div class="page-header">
       <div class="header-left">
-        <i class="fa-solid fa-pills page-icon"></i>
+        <i :class="pageIconClass"></i>
         <div>
-          <h2 class="page-title">药品列表</h2>
-          <p class="page-desc">查询药品编码、分类、规格与库存信息</p>
+          <h2 class="page-title">{{ pageTitle }}</h2>
+          <p class="page-desc">
+            {{ pageDesc }}
+            <span
+              v-if="stockWarningSwitch && !isStockWarningRoute"
+              class="page-desc-badge"
+            >当前：仅显示库存预警</span>
+          </p>
         </div>
       </div>
     </div>
@@ -57,6 +63,11 @@
             <el-option :value="1" label="在用" />
             <el-option :value="0" label="停用" />
           </el-select>
+
+          <span v-if="!isStockWarningRoute" class="stock-warning-switch-wrap">
+            <el-switch v-model="stockWarningSwitch" @change="onStockWarningChange" />
+            <span class="stock-warning-label">仅看库存预警</span>
+          </span>
         </div>
         <el-button class="add-user-btn" @click="openCreateDialog">
           <i class="fa-solid fa-plus"></i>
@@ -309,15 +320,34 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
+import { useRoute, onBeforeRouteUpdate } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   getMedicinePage,
+  getMedicineStockWarning,
   getMedicineCategories,
   createMedicine,
   updateMedicine,
   getMedicineDetail
 } from '@/api/admin'
+
+const route = useRoute()
+const isStockWarningRoute = computed(() => route.meta.stockWarningOnly === true)
+const stockWarningSwitch = ref(false)
+const effectiveStockWarning = computed(() => isStockWarningRoute.value || stockWarningSwitch.value)
+
+const pageTitle = computed(() => (isStockWarningRoute.value ? '库存预警' : '药品列表'))
+const pageDesc = computed(() =>
+  isStockWarningRoute.value
+    ? '当前库存低于或等于最低库存的药品，请及时补货'
+    : '查询药品编码、分类、规格与库存信息'
+)
+const pageIconClass = computed(() =>
+  isStockWarningRoute.value
+    ? 'fa-solid fa-triangle-exclamation page-icon page-icon-warning'
+    : 'fa-solid fa-pills page-icon'
+)
 
 const loading = ref(false)
 const tableData = ref([])
@@ -375,9 +405,32 @@ const headerCellStyle = {
   borderBottom: '1px solid rgba(139, 90, 43, 0.15)'
 }
 
-const tableRowClassName = ({ rowIndex }) => {
-  return rowIndex % 2 === 1 ? 'striped-row' : ''
+const isStockWarningRow = (row) => {
+  const sq = row.stockQuantity
+  const ms = row.minStock
+  if (sq == null || ms == null) return false
+  return Number(sq) <= Number(ms)
 }
+
+const tableRowClassName = ({ row, rowIndex }) => {
+  const parts = []
+  if (rowIndex % 2 === 1) parts.push('striped-row')
+  if (isStockWarningRow(row)) parts.push('row-stock-warning')
+  return parts.join(' ')
+}
+
+const onStockWarningChange = () => {
+  currentPage.value = 1
+  loadData()
+}
+
+const medicineRoutes = ['/admin/medicine', '/admin/medicine-stock-warning']
+onBeforeRouteUpdate((to, from) => {
+  if (!medicineRoutes.includes(to.path) || !medicineRoutes.includes(from.path)) return
+  if (to.path === from.path) return
+  currentPage.value = 1
+  loadData()
+})
 
 const formatMoney = (v) => {
   if (v === null || v === undefined) return '-'
@@ -397,14 +450,17 @@ const loadCategories = async () => {
 
 const loadData = async () => {
   loading.value = true
+  const params = {
+    current: currentPage.value,
+    size: pageSize.value,
+    keyword: keyword.value || undefined,
+    categoryId: categoryIdFilter.value ?? undefined,
+    status: statusFilter.value ?? undefined
+  }
   try {
-    const res = await getMedicinePage({
-      current: currentPage.value,
-      size: pageSize.value,
-      keyword: keyword.value || undefined,
-      categoryId: categoryIdFilter.value ?? undefined,
-      status: statusFilter.value ?? undefined
-    })
+    const res = effectiveStockWarning.value
+      ? await getMedicineStockWarning(params)
+      : await getMedicinePage(params)
     tableData.value = res.list || []
     total.value = res.total || 0
   } catch {
@@ -562,6 +618,11 @@ onMounted(() => {
   box-shadow: 0 4px 14px rgba(212, 130, 50, 0.35);
 }
 
+.page-icon-warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4);
+}
+
 .page-title {
   margin: 0;
   font-size: 20px;
@@ -574,6 +635,16 @@ onMounted(() => {
   margin: 4px 0 0 0;
   font-size: 13px;
   color: #5c4a32;
+}
+
+.page-desc-badge {
+  margin-left: 10px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b45309;
+  background: rgba(255, 183, 120, 0.35);
+  border-radius: 6px;
 }
 
 .content-card {
@@ -601,9 +672,23 @@ onMounted(() => {
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  max-width: 960px;
+  max-width: 1100px;
   flex: 1;
   min-width: 220px;
+}
+
+.stock-warning-switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+.stock-warning-label {
+  font-size: 13px;
+  color: #5c4a32;
+  user-select: none;
 }
 
 .search-icon {
@@ -717,6 +802,14 @@ onMounted(() => {
 
 .data-table :deep(.striped-row td) {
   background: rgba(255, 250, 245, 0.5) !important;
+}
+
+.data-table :deep(.row-stock-warning td) {
+  background: rgba(255, 200, 150, 0.35) !important;
+}
+
+.data-table :deep(.el-table__row.row-stock-warning:hover > td) {
+  background: rgba(255, 183, 120, 0.45) !important;
 }
 
 .cell-code {

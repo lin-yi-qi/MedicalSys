@@ -131,6 +131,17 @@ export function getMedicinePage(params) {
 }
 
 /**
+ * 库存预警分页（当前库存 ≤ 最低库存）
+ */
+export function getMedicineStockWarning(params) {
+  return request({
+    url: '/admin/medicine/stock-warning',
+    method: 'get',
+    params
+  })
+}
+
+/**
  * 药品分类（下拉）
  */
 export function getMedicineCategories() {

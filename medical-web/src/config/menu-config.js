@@ -48,7 +48,8 @@ export const adminMenuItems = [
     title: '药品管理',
     icon: 'fa-solid fa-pills',
     children: [
-      { index: '5-1', label: '药品列表', icon: 'fa-solid fa-list', url: '/admin/medicine' }
+      { index: '5-1', label: '药品列表', icon: 'fa-solid fa-list', url: '/admin/medicine' },
+      { index: '5-2', label: '库存预警', icon: 'fa-solid fa-triangle-exclamation', url: '/admin/medicine-stock-warning' }
     ]
   },
   {

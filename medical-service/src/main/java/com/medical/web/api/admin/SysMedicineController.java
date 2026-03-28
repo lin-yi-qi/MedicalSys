@@ -85,6 +85,21 @@ public class SysMedicineController {
         return ResultVo.ok();
     }
 
+    /**
+     * 库存预警分页：当前库存 &lt;= 最低库存（与开发文档一致）
+     */
+    @GetMapping("/stock-warning")
+    public ResultVo<PageResult<MedicineListVo>> stockWarning(
+            @RequestParam(value = "current", defaultValue = "1") Long current,
+            @RequestParam(value = "size", defaultValue = "10") Long size,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "categoryId", required = false) Long categoryId,
+            @RequestParam(value = "status", required = false) Integer status) {
+        LambdaQueryWrapper<Medicine> wrapper = buildMedicineListWrapper(keyword, categoryId, status);
+        wrapper.apply("stock_quantity IS NOT NULL AND min_stock IS NOT NULL AND stock_quantity <= min_stock");
+        return ResultVo.ok(toMedicinePageResult(current, size, wrapper));
+    }
+
     @GetMapping("/{id}")
     public ResultVo<MedicineDetailVo> detail(@PathVariable("id") Long id) {
         Medicine m = medicineMapper.selectById(id);
@@ -143,6 +158,12 @@ public class SysMedicineController {
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "categoryId", required = false) Long categoryId,
             @RequestParam(value = "status", required = false) Integer status) {
+        LambdaQueryWrapper<Medicine> wrapper = buildMedicineListWrapper(keyword, categoryId, status);
+        return ResultVo.ok(toMedicinePageResult(current, size, wrapper));
+    }
+
+    private LambdaQueryWrapper<Medicine> buildMedicineListWrapper(
+            String keyword, Long categoryId, Integer status) {
         LambdaQueryWrapper<Medicine> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
             String kw = keyword.trim();
@@ -156,6 +177,11 @@ public class SysMedicineController {
         if (status != null) {
             wrapper.eq(Medicine::getStatus, status);
         }
+        return wrapper;
+    }
+
+    private PageResult<MedicineListVo> toMedicinePageResult(
+            Long current, Long size, LambdaQueryWrapper<Medicine> wrapper) {
         wrapper.orderByAsc(Medicine::getMedicineId);
         Page<Medicine> page = medicineMapper.selectPage(new Page<>(current, size), wrapper);
 
@@ -185,7 +211,7 @@ public class SysMedicineController {
         result.setPageSize(page.getSize());
         result.setTotal(page.getTotal());
         result.setList(voList);
-        return ResultVo.ok(result);
+        return result;
     }
 
     /**

@@ -61,7 +61,9 @@ const menuItems = computed(() => getMenuByRole(userInfo.value?.roles))
 const route = useRoute()
 const defaultOpeneds = computed(() => {
   const path = route.path
-  const item = menuItems.value.find((m) => m.children?.some((c) => path.startsWith(c.url)))
+  const item = menuItems.value.find((m) =>
+    m.children?.some((c) => path === c.url || path.startsWith(c.url + '/'))
+  )
   return item ? [item.index] : []
 })
 </script>

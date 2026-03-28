@@ -25,6 +25,12 @@ const routes = [
       { path: 'admin/schedule', component: Placeholder, meta: { title: '排班管理' } },
       { path: 'admin/appointment', component: Placeholder, meta: { title: '预约管理' } },
       { path: 'admin/medicine', component: () => import('@/views/admin/MedicineList.vue'), meta: { title: '药品列表' } },
+      {
+        path: 'admin/medicine-stock-warning',
+        name: 'MedicineStockWarning',
+        component: () => import('@/views/admin/MedicineList.vue'),
+        meta: { title: '库存预警', stockWarningOnly: true }
+      },
       { path: 'admin/system/user', component: () => import('@/views/admin/UserManagement.vue'), meta: { title: '用户管理' } },
       { path: 'admin/system/role', component: () => import('@/views/admin/RoleManagement.vue'), meta: { title: '角色管理' } },
       { path: 'user/password', component: Placeholder, meta: { title: '修改密码' } },
