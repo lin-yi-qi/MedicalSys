@@ -20,6 +20,8 @@ public class UserListVo {
     /** 角色 ID，用于编辑时回填多选 */
     private List<Long> roleIds;
     private List<String> roleNames;
+    private Long deptId;
+    private String deptName;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdTime;
 }

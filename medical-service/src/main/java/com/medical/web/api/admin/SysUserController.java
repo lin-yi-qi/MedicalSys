@@ -9,13 +9,16 @@ import com.medical.common.pagination.PageResult;
 import com.medical.common.response.ResultVo;
 import com.medical.domain.dto.UserCreateDto;
 import com.medical.domain.dto.UserUpdateDto;
+import com.medical.domain.entity.SysDept;
 import com.medical.domain.entity.SysRole;
 import com.medical.domain.entity.SysUser;
 import com.medical.domain.entity.SysUserRole;
 import com.medical.domain.vo.UserListVo;
+import com.medical.mapper.SysDeptMapper;
 import com.medical.mapper.SysRoleMapper;
 import com.medical.mapper.SysUserMapper;
 import com.medical.mapper.SysUserRoleMapper;
+import com.medical.service.StaffDeptAssignmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +31,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +51,8 @@ public class SysUserController {
     private final SysUserMapper sysUserMapper;
     private final SysRoleMapper sysRoleMapper;
     private final SysUserRoleMapper sysUserRoleMapper;
+    private final SysDeptMapper sysDeptMapper;
+    private final StaffDeptAssignmentService staffDeptAssignmentService;
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/page")
@@ -122,6 +132,18 @@ public class SysUserController {
                 break;
         }
         Page<SysUser> page = sysUserMapper.selectPage(new Page<>(current, size), wrapper);
+        Set<Long> deptIds = page.getRecords().stream()
+                .map(SysUser::getDeptId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(HashSet::new));
+        Map<Long, String> deptNameMap = new HashMap<>();
+        if (!deptIds.isEmpty()) {
+            for (SysDept d : sysDeptMapper.selectBatchIds(deptIds)) {
+                if (d != null) {
+                    deptNameMap.put(d.getDeptId(), d.getName());
+                }
+            }
+        }
         List<UserListVo> voList = page.getRecords().stream().map(u -> {
             UserListVo vo = new UserListVo();
             vo.setUserId(u.getUserId());
@@ -131,6 +153,10 @@ public class SysUserController {
             vo.setMobilePhone(u.getMobilePhone());
             vo.setStatus(u.getStatus());
             vo.setCreatedTime(u.getCreatedTime());
+            vo.setDeptId(u.getDeptId());
+            if (u.getDeptId() != null) {
+                vo.setDeptName(deptNameMap.get(u.getDeptId()));
+            }
             List<SysUserRole> userRoles = sysUserRoleMapper.selectList(
                     new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, u.getUserId()));
             List<Long> roleIds = userRoles.stream()
@@ -181,6 +207,12 @@ public class SysUserController {
         if (!isSuperAdmin && roles.stream().anyMatch(r -> "SUPER_ADMIN".equals(r.getRoleCode()))) {
             throw new BusinessWarningException("无权分配超级管理员角色");
         }
+        if (dto.getDeptId() != null) {
+            SysDept dept = sysDeptMapper.selectById(dto.getDeptId());
+            if (dept == null || dept.getStatus() == null || dept.getStatus() != 1) {
+                throw new BusinessWarningException("请选择有效的科室");
+            }
+        }
 
         LocalDateTime now = LocalDateTime.now();
         SysUser user = new SysUser();
@@ -189,6 +221,7 @@ public class SysUserController {
         user.setName(StringUtils.hasText(dto.getName()) ? dto.getName().trim() : username);
         user.setEmail(StringUtils.hasText(dto.getEmail()) ? dto.getEmail().trim() : null);
         user.setMobilePhone(StringUtils.hasText(dto.getMobilePhone()) ? dto.getMobilePhone().trim() : null);
+        user.setDeptId(dto.getDeptId());
         user.setStatus(1);
         user.setCreatedTime(now);
         user.setUpdatedTime(now);
@@ -201,6 +234,8 @@ public class SysUserController {
             ur.setCreatedTime(now);
             sysUserRoleMapper.insert(ur);
         }
+        List<String> roleCodes = roles.stream().map(SysRole::getRoleCode).collect(Collectors.toList());
+        staffDeptAssignmentService.upsertStaffRecordsForUser(user.getUserId(), user.getDeptId(), roleCodes);
         return ResultVo.ok();
     }
 
@@ -216,6 +251,7 @@ public class SysUserController {
         LambdaUpdateWrapper<SysUser> wrapper = new LambdaUpdateWrapper<SysUser>()
                 .eq(SysUser::getUserId, id);
         boolean hasUserField = false;
+        boolean deptTouched = false;
         if (dto.getName() != null) {
             wrapper.set(SysUser::getName, dto.getName());
             hasUserField = true;
@@ -228,7 +264,21 @@ public class SysUserController {
             wrapper.set(SysUser::getMobilePhone, dto.getMobilePhone());
             hasUserField = true;
         }
+        if (Boolean.TRUE.equals(dto.getClearDept())) {
+            wrapper.set(SysUser::getDeptId, null);
+            hasUserField = true;
+            deptTouched = true;
+        } else if (dto.getDeptId() != null) {
+            SysDept dept = sysDeptMapper.selectById(dto.getDeptId());
+            if (dept == null || dept.getStatus() == null || dept.getStatus() != 1) {
+                throw new BusinessWarningException("请选择有效的科室");
+            }
+            wrapper.set(SysUser::getDeptId, dto.getDeptId());
+            hasUserField = true;
+            deptTouched = true;
+        }
         if (hasUserField) {
+            wrapper.set(SysUser::getUpdatedTime, LocalDateTime.now());
             sysUserMapper.update(null, wrapper);
         }
 
@@ -267,6 +317,13 @@ public class SysUserController {
                 ur.setCreatedTime(now);
                 sysUserRoleMapper.insert(ur);
             }
+        }
+        if (deptTouched || dto.getRoleIds() != null) {
+            SysUser refreshed = sysUserMapper.selectById(id);
+            List<String> codes = sysRoleMapper.selectRoleCodesByUserId(id);
+            staffDeptAssignmentService.upsertStaffRecordsForUser(
+                    id, refreshed != null ? refreshed.getDeptId() : null,
+                    codes != null ? codes : Collections.emptyList());
         }
         return ResultVo.ok();
     }

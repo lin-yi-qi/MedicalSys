@@ -19,7 +19,11 @@ const routes = [
         component: () => import('@/views/admin/Dashboard.vue'),
         meta: { title: '工作台' }
       },
-      { path: 'admin/dept', component: Placeholder, meta: { title: '科室管理' } },
+      {
+        path: 'admin/dept',
+        component: () => import('@/views/admin/DeptList.vue'),
+        meta: { title: '科室列表' }
+      },
       {
         path: 'admin/doctor',
         component: () => import('@/views/admin/StaffList.vue'),

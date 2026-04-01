@@ -31,4 +31,7 @@ public class UserCreateDto {
 
     @NotEmpty(message = "请至少选择一个角色")
     private List<Long> roleIds;
+
+    /** 可选：所属科室（管理端维护） */
+    private Long deptId;
 }

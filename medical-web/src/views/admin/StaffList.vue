@@ -70,6 +70,11 @@
             </template>
           </el-table-column>
           <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
+          <el-table-column v-if="showStaffDept" prop="deptName" label="科室" min-width="120" show-overflow-tooltip>
+            <template #default="{ row }">
+              {{ row.deptName || '-' }}
+            </template>
+          </el-table-column>
           <el-table-column label="角色" min-width="200">
             <template #default="{ row }">
               <div class="role-tags">
@@ -207,6 +212,23 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item v-if="showStaffDept" label="所属科室">
+          <el-select
+            v-model="createForm.deptId"
+            placeholder="选填，可稍后在科室页「按角色同步」"
+            clearable
+            filterable
+            class="role-select"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="d in deptOptions"
+              :key="d.deptId"
+              :label="`${d.name}${d.code ? ' (' + d.code + ')' : ''}`"
+              :value="d.deptId"
+            />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="edit-dialog-footer">
@@ -263,6 +285,23 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item v-if="showStaffDept" label="所属科室">
+          <el-select
+            v-model="editForm.deptId"
+            placeholder="选择科室"
+            clearable
+            filterable
+            class="role-select"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="d in deptOptions"
+              :key="d.deptId"
+              :label="`${d.name}${d.code ? ' (' + d.code + ')' : ''}`"
+              :value="d.deptId"
+            />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="edit-dialog-footer">
@@ -305,6 +344,9 @@
             <span v-if="!userDetail.roleNames?.length" class="no-role">-</span>
           </div>
         </el-descriptions-item>
+        <el-descriptions-item v-if="showStaffDept" label="科室" :span="2">
+          {{ userDetail.deptName || '-' }}
+        </el-descriptions-item>
       </el-descriptions>
       <template #footer>
         <div class="edit-dialog-footer">
@@ -319,7 +361,15 @@
 import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUserPage, getRoleList, createUser, updateUser, updateUserStatus, deleteUser } from '@/api/admin'
+import {
+  getUserPage,
+  getRoleList,
+  createUser,
+  updateUser,
+  updateUserStatus,
+  deleteUser,
+  getDeptOptions
+} from '@/api/admin'
 
 const route = useRoute()
 
@@ -330,6 +380,23 @@ const staffRoleLabel = computed(() => {
   if (staffRoleCode.value === 'PATIENT') return '患者'
   return '医生'
 })
+
+/** 医生/护士页展示与维护所属科室 */
+const showStaffDept = computed(
+  () => staffRoleCode.value === 'DOCTOR' || staffRoleCode.value === 'NURSE'
+)
+
+const deptOptions = ref([])
+
+const loadDeptOptions = async () => {
+  if (!showStaffDept.value) return
+  try {
+    const list = await getDeptOptions()
+    deptOptions.value = Array.isArray(list) ? list : []
+  } catch {
+    deptOptions.value = []
+  }
+}
 
 const pageTitle = computed(() => {
   if (staffRoleCode.value === 'NURSE') return '护士列表'
@@ -414,7 +481,8 @@ const createForm = reactive({
   name: '',
   mobilePhone: '',
   email: '',
-  roleIds: []
+  roleIds: [],
+  deptId: null
 })
 
 const createRules = {
@@ -475,7 +543,8 @@ const editForm = ref({
   name: '',
   mobilePhone: '',
   email: '',
-  roleIds: []
+  roleIds: [],
+  deptId: null
 })
 
 const editRules = {
@@ -497,7 +566,8 @@ const userDetail = reactive({
   mobilePhone: '',
   status: null,
   createdTime: '',
-  roleNames: []
+  roleNames: [],
+  deptName: ''
 })
 
 const headerCellStyle = {
@@ -546,6 +616,7 @@ const loadData = async () => {
 
 const openCreateDialog = async () => {
   await loadRoleOptions()
+  await loadDeptOptions()
   syncFixedRoleId()
   if (!fixedRoleId.value) {
     ElMessage.warning('未找到角色 ' + staffRoleCode.value + '，请先在「角色管理」中维护')
@@ -563,6 +634,7 @@ const resetCreateForm = () => {
   createForm.mobilePhone = ''
   createForm.email = ''
   createForm.roleIds = []
+  createForm.deptId = null
   createFormRef.value?.resetFields()
 }
 
@@ -579,14 +651,18 @@ const submitCreate = async () => {
   createSubmitting.value = true
   const roleIds = [...new Set([fixedRoleId.value, ...createForm.roleIds])]
   try {
-    await createUser({
+    const payload = {
       username: createForm.username.trim(),
       password: createForm.password,
       name: createForm.name.trim() || undefined,
       mobilePhone: createForm.mobilePhone.trim() || undefined,
       email: createForm.email.trim() || undefined,
       roleIds
-    })
+    }
+    if (showStaffDept.value && createForm.deptId != null) {
+      payload.deptId = createForm.deptId
+    }
+    await createUser(payload)
     ElMessage.success('新增成功')
     createDialogVisible.value = false
     loadData()
@@ -599,6 +675,7 @@ const submitCreate = async () => {
 
 const openEditDialog = async (row) => {
   await loadRoleOptions()
+  await loadDeptOptions()
   syncFixedRoleId()
   editForm.value = {
     userId: row.userId,
@@ -606,7 +683,8 @@ const openEditDialog = async (row) => {
     name: row.name || '',
     mobilePhone: row.mobilePhone || '',
     email: row.email || '',
-    roleIds: Array.isArray(row.roleIds) ? [...row.roleIds] : []
+    roleIds: Array.isArray(row.roleIds) ? [...row.roleIds] : [],
+    deptId: row.deptId ?? null
   }
   if (fixedRoleId.value && !editForm.value.roleIds.includes(fixedRoleId.value)) {
     editForm.value.roleIds = [...editForm.value.roleIds, fixedRoleId.value]
@@ -621,7 +699,8 @@ const resetEditForm = () => {
     name: '',
     mobilePhone: '',
     email: '',
-    roleIds: []
+    roleIds: [],
+    deptId: null
   }
   editFormRef.value?.resetFields()
 }
@@ -638,12 +717,20 @@ const submitEdit = async () => {
   }
   editSubmitting.value = true
   try {
-    await updateUser(editForm.value.userId, {
+    const body = {
       name: editForm.value.name,
       mobilePhone: editForm.value.mobilePhone,
       email: editForm.value.email,
       roleIds: [...editForm.value.roleIds]
-    })
+    }
+    if (showStaffDept.value) {
+      if (editForm.value.deptId == null || editForm.value.deptId === '') {
+        body.clearDept = true
+      } else {
+        body.deptId = editForm.value.deptId
+      }
+    }
+    await updateUser(editForm.value.userId, body)
     ElMessage.success('保存成功')
     editDialogVisible.value = false
     loadData()
@@ -663,6 +750,7 @@ const openUserDetail = (row) => {
   userDetail.status = row.status
   userDetail.createdTime = row.createdTime || ''
   userDetail.roleNames = row.roleNames || []
+  userDetail.deptName = row.deptName || ''
   userDetailDialogVisible.value = true
 }
 
@@ -675,6 +763,7 @@ const resetUserDetail = () => {
   userDetail.status = null
   userDetail.createdTime = ''
   userDetail.roleNames = []
+  userDetail.deptName = ''
 }
 
 const toggleStatus = async (row) => {
@@ -736,6 +825,7 @@ watch(
       keyword.value = ''
       statusFilter.value = null
       await loadRoleOptions()
+      await loadDeptOptions()
       syncFixedRoleId()
       loadData()
     }
@@ -744,6 +834,7 @@ watch(
 
 onMounted(async () => {
   await loadRoleOptions()
+  await loadDeptOptions()
   syncFixedRoleId()
   loadData()
 })

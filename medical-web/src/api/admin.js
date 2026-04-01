@@ -182,3 +182,59 @@ export function getMedicineDetail(id) {
     method: 'get'
   })
 }
+
+/** 科室分页 */
+export function getDeptPage(params) {
+  return request({
+    url: '/admin/dept/page',
+    method: 'get',
+    params
+  })
+}
+
+/** 科室树（启用） */
+export function getDeptTree() {
+  return request({
+    url: '/admin/dept/tree',
+    method: 'get'
+  })
+}
+
+/** 科室下拉（启用，平铺） */
+export function getDeptOptions() {
+  return request({
+    url: '/admin/dept/options',
+    method: 'get'
+  })
+}
+
+export function getDeptDetail(id) {
+  return request({
+    url: `/admin/dept/${id}`,
+    method: 'get'
+  })
+}
+
+export function createDept(data) {
+  return request({
+    url: '/admin/dept',
+    method: 'post',
+    data
+  })
+}
+
+export function updateDept(id, data) {
+  return request({
+    url: `/admin/dept/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+export function deleteDept(id) {
+  return request({
+    url: `/admin/dept/${id}`,
+    method: 'delete'
+  })
+}
+
