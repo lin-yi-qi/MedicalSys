@@ -61,7 +61,22 @@
               <span class="cell-id">{{ row.deptId }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="name" label="科室名称" min-width="140" />
+          <el-table-column prop="name" label="科室名称" min-width="180">
+            <template #default="{ row }">
+              <div class="dept-name-wrap">
+                <span class="dept-name">{{ row.name }}</span>
+                <div class="dept-jump-actions">
+                <el-button link class="jump-link" size="small" @click="goStaffList('DOCTOR', row)">
+                  医生
+                </el-button>
+                <span class="sep">|</span>
+                <el-button link class="jump-link" size="small" @click="goStaffList('NURSE', row)">
+                  护士
+                </el-button>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column prop="code" label="科室代码" width="130">
             <template #default="{ row }">
               <span class="cell-code">{{ row.code || '-' }}</span>
@@ -215,9 +230,11 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getDeptPage, getDeptOptions, createDept, updateDept, deleteDept } from '@/api/admin'
 
+const router = useRouter()
 const loading = ref(false)
 const submitting = ref(false)
 const keyword = ref('')
@@ -380,6 +397,17 @@ const confirmDelete = async (row) => {
   }
 }
 
+const goStaffList = (roleCode, row) => {
+  const path = roleCode === 'NURSE' ? '/admin/nurse' : '/admin/doctor'
+  router.push({
+    path,
+    query: {
+      deptId: String(row.deptId),
+      deptName: row.name || ''
+    }
+  })
+}
+
 onMounted(() => {
   loadData()
 })
@@ -484,6 +512,47 @@ onMounted(() => {
   font-family: ui-monospace, monospace;
   font-size: 12px;
   color: #5c4a32;
+}
+
+.dept-name-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dept-name {
+  font-weight: 600;
+  color: #4a3924;
+  white-space: nowrap;
+}
+
+.dept-jump-actions {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  white-space: nowrap;
+  color: #8f7a63;
+  opacity: 0.9;
+}
+
+.dept-jump-actions :deep(.jump-link.el-button) {
+  --el-button-text-color: #9a8369;
+  --el-button-hover-text-color: #7f684d;
+  font-size: 12px;
+  padding: 0;
+  min-height: auto;
+  height: auto;
+}
+
+.dept-jump-actions :deep(.jump-link.el-button:hover) {
+  text-decoration: underline;
+}
+
+.dept-jump-actions .sep {
+  color: #b7a58f;
+  margin: 0 2px;
+  font-size: 12px;
 }
 
 .cell-time {

@@ -38,6 +38,24 @@
             <el-option :value="1" label="启用" />
             <el-option :value="0" label="禁用" />
           </el-select>
+          <el-select
+            v-if="showStaffDept"
+            v-model="deptFilter"
+            placeholder="按科室筛选"
+            clearable
+            filterable
+            size="large"
+            class="filter-select"
+            style="width: 220px"
+            @change="handleDeptFilterChange"
+          >
+            <el-option
+              v-for="d in deptOptions"
+              :key="d.deptId"
+              :label="`${d.name}${d.code ? ' (' + d.code + ')' : ''}`"
+              :value="d.deptId"
+            />
+          </el-select>
         </div>
         <el-button class="add-user-btn" @click="openCreateDialog">
           <i class="fa-solid fa-user-plus"></i>
@@ -456,8 +474,23 @@ const pageSize = ref(10)
 const total = ref(0)
 const keyword = ref('')
 const statusFilter = ref(null)
+const deptFilter = ref(null)
 const sortField = ref('userId')
 const sortOrder = ref('asc')
+
+const parseDeptQuery = (v) => {
+  if (v == null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+const syncDeptFilterFromRoute = () => {
+  if (!showStaffDept.value) {
+    deptFilter.value = null
+    return
+  }
+  deptFilter.value = parseDeptQuery(route.query.deptId)
+}
 
 const roleIdsMustIncludeStaff = (_rule, value, callback) => {
   if (!fixedRoleId.value) {
@@ -602,6 +635,7 @@ const loadData = async () => {
       size: pageSize.value,
       keyword: keyword.value || undefined,
       status: statusFilter.value ?? undefined,
+      deptId: showStaffDept.value ? (deptFilter.value ?? undefined) : undefined,
       roleCode: staffRoleCode.value,
       sortField: sortField.value || undefined,
       sortOrder: sortOrder.value || undefined
@@ -613,6 +647,11 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleDeptFilterChange = () => {
+  currentPage.value = 1
+  loadData()
 }
 
 const openCreateDialog = async () => {
@@ -818,22 +857,32 @@ watch(
     if (prev == null) return
     const roleUserListPaths = ['/admin/doctor', '/admin/nurse', '/admin/patient']
     if (
-      roleUserListPaths.includes(cur) &&
-      roleUserListPaths.includes(prev) &&
-      cur !== prev
+      roleUserListPaths.includes(route.path) &&
+      roleUserListPaths.some((p) => cur.startsWith(p)) &&
+      roleUserListPaths.some((p) => prev.startsWith(p)) &&
+      cur.split('?')[0] !== prev.split('?')[0]
     ) {
       currentPage.value = 1
       keyword.value = ''
       statusFilter.value = null
+      syncDeptFilterFromRoute()
       await loadRoleOptions()
       await loadDeptOptions()
       syncFixedRoleId()
+      loadData()
+      return
+    }
+    // 同一路径下仅查询参数变化（如从科室列表跳转带 deptId）
+    if (showStaffDept.value && cur !== prev && cur.split('?')[0] === prev.split('?')[0]) {
+      syncDeptFilterFromRoute()
+      currentPage.value = 1
       loadData()
     }
   }
 )
 
 onMounted(async () => {
+  syncDeptFilterFromRoute()
   await loadRoleOptions()
   await loadDeptOptions()
   syncFixedRoleId()

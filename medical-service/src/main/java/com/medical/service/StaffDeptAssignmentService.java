@@ -49,6 +49,13 @@ public class StaffDeptAssignmentService {
 
     private static final Set<String> PHYSICIAN_ROLES = new HashSet<>(PHYSICIAN_ROLE_PRIORITY);
     private static final Set<String> NURSE_ROLES = new HashSet<>(NURSE_ROLE_PRIORITY);
+    /** 普通护士分流目标科室（不含 DOCTOR/NURSE 抽象科室）。 */
+    private static final List<String> NURSE_TARGET_PHYSICIAN_DEPTS = Arrays.asList(
+            "ER_DOCTOR", "PEDIATRICIAN", "INTERNIST", "SURGEON", "GYNECOLOGIST",
+            "ORTHOPEDIST", "DERMATOLOGIST", "OPHTHALMOLOGIST", "ENT_DOCTOR", "CARDIOLOGIST",
+            "NEUROLOGIST", "ONCOLOGIST", "PSYCHIATRIST", "TCM_DOCTOR", "REHAB_DOCTOR",
+            "NUTRITIONIST", "ANESTHESIOLOGIST", "PATHOLOGIST"
+    );
 
     private final SysUserMapper sysUserMapper;
     private final SysUserRoleMapper sysUserRoleMapper;
@@ -125,10 +132,7 @@ public class StaffDeptAssignmentService {
                 changed = true;
             }
         } else if (isNurse) {
-            Long deptId = pickDeptId(codes, NURSE_ROLE_PRIORITY, deptCodeToId);
-            if (deptId == null) {
-                deptId = deptCodeToId.get("NURSE");
-            }
+            Long deptId = resolveNurseDeptId(user.getUserId(), codes, deptCodeToId);
             if (deptId != null) {
                 user.setDeptId(deptId);
                 sysUserMapper.updateById(user);
@@ -149,6 +153,28 @@ public class StaffDeptAssignmentService {
             }
         }
         return null;
+    }
+
+    /**
+     * 护士科室解析策略：
+     * 1) 有专科护士角色时按角色落对应科室；
+     * 2) 仅普通 NURSE 时，按 userId 稳定分流到临床科室；
+     * 3) 若科室未初始化则回退到 NURSE 护理部。
+     */
+    private Long resolveNurseDeptId(Long userId, List<String> roleCodes, Map<String, Long> deptCodeToId) {
+        Long byRole = pickDeptId(roleCodes, NURSE_ROLE_PRIORITY, deptCodeToId);
+        if (byRole != null && !Objects.equals(byRole, deptCodeToId.get("NURSE"))) {
+            return byRole;
+        }
+        List<Long> candidateDeptIds = NURSE_TARGET_PHYSICIAN_DEPTS.stream()
+                .map(deptCodeToId::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (!candidateDeptIds.isEmpty()) {
+            int idx = Math.floorMod(userId != null ? userId.intValue() : 0, candidateDeptIds.size());
+            return candidateDeptIds.get(idx);
+        }
+        return deptCodeToId.get("NURSE");
     }
 
     private void upsertDoctor(SysUser user, Long deptId) {
@@ -234,10 +260,7 @@ public class StaffDeptAssignmentService {
         if (isNurse) {
             Long effective = deptId != null ? deptId : user.getDeptId();
             if (effective == null) {
-                effective = pickDeptId(roleCodes, NURSE_ROLE_PRIORITY, deptCodeToId);
-            }
-            if (effective == null) {
-                effective = deptCodeToId.get("NURSE");
+                effective = resolveNurseDeptId(userId, roleCodes, deptCodeToId);
             }
             if (effective != null) {
                 upsertNurse(user, effective);
