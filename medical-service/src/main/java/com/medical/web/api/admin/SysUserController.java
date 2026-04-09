@@ -63,6 +63,7 @@ public class SysUserController {
             @RequestParam(value = "size", defaultValue = "10") Long size,
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "deptId", required = false) Long deptId,
             @RequestParam(value = "roleCode", required = false) String roleCode,
             @RequestParam(value = "sortField", required = false) String sortField,
             @RequestParam(value = "sortOrder", required = false) String sortOrder) {
@@ -74,6 +75,9 @@ public class SysUserController {
         }
         if (status != null) {
             wrapper.eq(SysUser::getStatus, status);
+        }
+        if (deptId != null) {
+            wrapper.eq(SysUser::getDeptId, deptId);
         }
         if (StringUtils.hasText(roleCode)) {
             SysRole role = sysRoleMapper.selectOne(
