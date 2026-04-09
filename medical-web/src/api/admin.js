@@ -238,3 +238,70 @@ export function deleteDept(id) {
   })
 }
 
+// ==================== 排班相关 ====================
+
+/**
+ * 获取医生可预约日期
+ */
+export function getAvailableDates(userId) {
+  return request({
+    url: '/patient/schedule/available-dates',
+    method: 'get',
+    params: { userId }
+  })
+}
+
+/**
+ * 获取医生某天排班时段
+ */
+export function getScheduleSlots(userId, date) {
+  return request({
+    url: '/patient/schedule/slots',
+    method: 'get',
+    params: { userId, date }
+  })
+}
+
+// ==================== 预约相关 ====================
+
+/**
+ * 创建预约
+ */
+export function createAppointment(data) {
+  return request({
+    url: '/patient/appointment/create',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 取消预约
+ */
+export function cancelAppointment(appointmentId) {
+  return request({
+    url: `/patient/appointment/cancel/${appointmentId}`,
+    method: 'put'
+  })
+}
+
+/**
+ * 获取我的预约列表
+ */
+export function getMyAppointments() {
+  return request({
+    url: '/patient/appointment/my',
+    method: 'get'
+  })
+}
+
+/**
+ * 获取预约详情
+ */
+export function getAppointmentDetail(appointmentId) {
+  return request({
+    url: `/patient/appointment/${appointmentId}`,
+    method: 'get'
+  })
+}
+
