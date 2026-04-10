@@ -12,21 +12,21 @@
 
     <div class="content-card">
       <div class="toolbar">
-        <el-select v-model="deptId" placeholder="科室" clearable filterable style="width: 180px" @change="handleDeptChange">
+        <el-select v-model="deptId" class="filter-select" placeholder="科室" clearable filterable style="width: 180px" @change="handleDeptChange">
           <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.name" :value="d.deptId" />
         </el-select>
-        <el-select v-model="doctorId" placeholder="医生" clearable filterable style="width: 180px" @change="loadData">
-          <el-option v-for="d in doctorOptions" :key="d.userId" :label="`${d.name || d.username} (${d.username})`" :value="d.userId" />
+        <el-select v-model="doctorId" class="filter-select" placeholder="医生" clearable filterable style="width: 180px" @change="loadData">
+          <el-option v-for="d in doctorOptions" :key="d.doctorId" :label="`${d.name || d.username} (${d.username})`" :value="d.doctorId" />
         </el-select>
-        <el-date-picker v-model="dateFilter" type="date" value-format="YYYY-MM-DD" placeholder="排班日期" @change="loadData" />
-        <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 120px" @change="loadData">
+        <el-date-picker v-model="dateFilter" class="filter-select" type="date" value-format="YYYY-MM-DD" placeholder="排班日期" @change="loadData" />
+        <el-select v-model="statusFilter" class="filter-select" placeholder="状态" clearable style="width: 120px" @change="loadData">
           <el-option :value="1" label="可预约" />
           <el-option :value="0" label="停诊" />
         </el-select>
         <el-button class="add-btn" @click="openCreate">新增排班</el-button>
       </div>
 
-      <el-table :data="tableData" v-loading="loading" class="data-table">
+      <el-table :data="tableData" v-loading="loading" class="data-table" :header-cell-style="headerCellStyle">
         <el-table-column prop="scheduleId" label="ID" width="72" />
         <el-table-column prop="deptName" label="科室" min-width="120" />
         <el-table-column prop="doctorName" label="医生" min-width="120">
@@ -64,7 +64,7 @@
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
         <el-form-item label="医生" prop="doctorId">
           <el-select v-model="form.doctorId" filterable style="width: 100%">
-            <el-option v-for="d in doctorOptions" :key="d.userId" :label="`${d.name || d.username} (${d.username})`" :value="d.userId" />
+            <el-option v-for="d in doctorOptions" :key="d.doctorId" :label="`${d.name || d.username} (${d.username})`" :value="d.doctorId" />
           </el-select>
         </el-form-item>
         <el-form-item label="日期" prop="scheduleDate">
@@ -89,8 +89,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submitForm">保存</el-button>
+        <el-button class="btn-cancel" @click="dialogVisible = false">取消</el-button>
+        <el-button class="btn-save" :loading="saving" @click="submitForm">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -101,7 +101,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getDeptOptions,
-  getUserPage,
+  getDoctorPage,
   getScheduleList,
   createSchedule,
   updateSchedule,
@@ -138,6 +138,14 @@ const form = reactive({
 
 const timeSlotOptions = ['08:00-09:00', '09:00-10:00', '10:00-11:00', '14:00-15:00', '15:00-16:00']
 
+const headerCellStyle = {
+  background: 'rgba(139, 90, 43, 0.08)',
+  color: '#5c4a32',
+  fontWeight: '600',
+  fontSize: '13px',
+  borderBottom: '1px solid rgba(139, 90, 43, 0.15)'
+}
+
 const rules = {
   doctorId: [{ required: true, message: '请选择医生', trigger: 'change' }],
   scheduleDate: [{ required: true, message: '请选择日期', trigger: 'change' }],
@@ -152,10 +160,9 @@ const loadDepts = async () => {
 }
 
 const loadDoctors = async () => {
-  const res = await getUserPage({
+  const res = await getDoctorPage({
     current: 1,
     size: 200,
-    roleCode: 'DOCTOR',
     status: 1,
     deptId: deptId.value ?? undefined
   })
@@ -267,12 +274,13 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.schedule-page { padding: 24px 28px 32px; }
+.schedule-page { padding: 24px 28px 32px; min-height: 100%; }
 .page-header { margin-bottom: 20px; }
 .header-left { display: flex; align-items: center; gap: 14px; }
 .page-icon {
   width: 48px; height: 48px; line-height: 48px; text-align: center; font-size: 22px; color: #fff;
   background: linear-gradient(135deg, #8b6f47, #6b4f2a); border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(107, 79, 42, 0.35);
 }
 .page-title { margin: 0; font-size: 20px; font-weight: 700; color: #2c1810; }
 .page-desc { margin: 4px 0 0; font-size: 13px; color: #5c4a32; }
@@ -281,6 +289,44 @@ onMounted(async () => {
   box-shadow: 0 8px 40px rgba(61,41,20,.08), 0 0 0 1px rgba(139,90,43,.08);
 }
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
-.add-btn { margin-left: auto; }
+
+.filter-select :deep(.el-input__wrapper),
+.filter-select :deep(.el-select__wrapper) {
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1px solid rgba(139, 90, 43, 0.2) !important;
+  box-shadow: none !important;
+}
+
+.filter-select :deep(.el-input__wrapper:hover),
+.filter-select :deep(.el-select__wrapper:hover),
+.filter-select :deep(.el-input__wrapper.is-focus),
+.filter-select :deep(.el-select__wrapper.is-focused) {
+  border-color: rgba(232, 165, 75, 0.6) !important;
+  box-shadow: 0 0 0 2px rgba(232, 165, 75, 0.15) !important;
+}
+
+.add-btn {
+  margin-left: auto;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e8a54b, #d48232);
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(212, 130, 50, 0.3);
+}
+
+.data-table :deep(.el-table__row:hover > td) {
+  background: rgba(232, 165, 75, 0.08) !important;
+}
+
 .pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }
+
+.btn-cancel { border-radius: 10px; }
+
+.btn-save {
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e8a54b, #d48232);
+  border: none;
+  color: #fff;
+}
 </style>

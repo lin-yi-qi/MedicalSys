@@ -12,6 +12,17 @@ export function getUserPage(params) {
 }
 
 /**
+ * 医生分页（doctor 业务表）
+ */
+export function getDoctorPage(params) {
+  return request({
+    url: '/admin/doctor/page',
+    method: 'get',
+    params
+  })
+}
+
+/**
  * 新增用户（含角色）
  */
 export function createUser(data) {
