@@ -246,141 +246,184 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { getDeptOptions, getUserPage ,getAvailableDates, getScheduleSlots, createAppointment} from '@/api/admin'
+  import { ref, computed, onMounted } from 'vue'
+  import { useRouter } from 'vue-router'
+  import { ElMessage } from 'element-plus'
+  import { getDeptOptions, getUserPage ,getAvailableDates, getScheduleSlots, createAppointment} from '@/api/admin'
 
-const router = useRouter()
+  const router = useRouter()
 
-// 步骤控制
-const currentStep = ref(1)
+  // 步骤控制
+  const currentStep = ref(1)
 
-// 科室相关
-const deptKeyword = ref('')
-const deptList = ref([])
-const deptLoading = ref(false)
-const selectedDept = ref(null)
+  // 科室相关
+  const deptKeyword = ref('')
+  const deptList = ref([])
+  const deptLoading = ref(false)
+  const selectedDept = ref(null)
 
-// 医生相关
-const doctorList = ref([])
-const doctorLoading = ref(false)
-const selectedDoctor = ref(null)
+  // 医生相关
+  const doctorList = ref([])
+  const doctorLoading = ref(false)
+  const selectedDoctor = ref(null)
 
-// 排班相关
-const availableDates = ref([])
-const dateLoading = ref(false)
-const selectedDate = ref('')
-const selectedScheduleId = ref(null)
-const selectedTimeSlot = ref('')
-const timeSlots = ref([])
-const scheduleLoading = ref(false)
+  // 排班相关
+  const availableDates = ref([])
+  const dateLoading = ref(false)
+  const selectedDate = ref('')
+  const selectedScheduleId = ref(null)
+  const selectedTimeSlot = ref('')
+  const timeSlots = ref([])
+  const scheduleLoading = ref(false)
 
-// 预约提交
-const submitting = ref(false)
-const successVisible = ref(false)
-const appointmentNo = ref('')
+  // 预约提交
+  const submitting = ref(false)
+  const successVisible = ref(false)
+  const appointmentNo = ref('')
 
-// 星期映射
-const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  // 星期映射
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
-// 判断下一步是否可用
-const canNext = computed(() => {
-  if (currentStep.value === 1) return selectedDept.value !== null
-  if (currentStep.value === 2) return selectedDoctor.value !== null
-  if (currentStep.value === 3) return selectedDate.value && selectedScheduleId.value
-  return false
-})
+  // 判断下一步是否可用
+  const canNext = computed(() => {
+    if (currentStep.value === 1) return selectedDept.value !== null
+    if (currentStep.value === 2) return selectedDoctor.value !== null
+    if (currentStep.value === 3) return selectedDate.value && selectedScheduleId.value
+    return false
+  })
 
-// 加载科室列表
-const loadDeptList = async () => {
-  deptLoading.value = true
-  try {
-    const res = await getDeptOptions()
-    let list = res.data || res || []
-    // 只显示 deptId < 20 的科室
-    list = list.filter(d => d.deptId < 20)
-    if (deptKeyword.value) {
-      const kw = deptKeyword.value.toLowerCase()
-      list = list.filter(d =>
-          d.name?.toLowerCase().includes(kw) ||
-          d.code?.toLowerCase().includes(kw)
-      )
-    }
-    deptList.value = list
-  } catch (error) {
-    console.error('加载科室失败:', error)
-    ElMessage.error('加载科室失败')
-  } finally {
-    deptLoading.value = false
-  }
-}
-
-// 选择科室
-const selectDept = (dept) => {
-  selectedDept.value = dept
-  currentStep.value = 2
-  loadDoctorList()
-}
-
-// 加载医生列表
-const loadDoctorList = async () => {
-  if (!selectedDept.value) return
-  doctorLoading.value = true
-  try {
-    const res = await getUserPage({
-      current: 1,
-      size: 100,
-      deptId: selectedDept.value.deptId,
-      status: 1
-    })
-    doctorList.value = res.data?.list || res.list || []
-  } catch (error) {
-    console.error('加载医生失败:', error)
-    ElMessage.error('加载医生失败')
-  } finally {
-    doctorLoading.value = false
-  }
-}
-
-// 选择医生
-const selectDoctor = async (doctor) => {
-  selectedDoctor.value = doctor
-  currentStep.value = 3
-  await loadAvailableDates()
-}
-
-// 加载可预约日期
-const loadAvailableDates = async () => {
-  if (!selectedDoctor.value) return
-  dateLoading.value = true
-  try {
-    const res = await getAvailableDates(selectedDoctor.value.userId)
-    const dates = res.data || res || []
-    // 转换为前端需要的格式
-    availableDates.value = dates.map(dateStr => {
-      const date = new Date(dateStr)
-      return {
-        value: dateStr,
-        week: weekdays[date.getDay()],
-        day: `${date.getMonth() + 1}/${date.getDate()}`
+  // 加载科室列表
+  const loadDeptList = async () => {
+    deptLoading.value = true
+    try {
+      const res = await getDeptOptions()
+      let list = res.data || res || []
+      // 只显示 deptId < 20 的科室
+      list = list.filter(d => d.deptId < 20)
+      if (deptKeyword.value) {
+        const kw = deptKeyword.value.toLowerCase()
+        list = list.filter(d =>
+            d.name?.toLowerCase().includes(kw) ||
+            d.code?.toLowerCase().includes(kw)
+        )
       }
-    })
-    // 默认选中第一个日期
-    if (availableDates.value.length > 0) {
-      selectedDate.value = availableDates.value[0].value
-      await loadScheduleSlots()
-    } else {
-      selectedDate.value = ''
-      timeSlots.value = []
+      deptList.value = list
+    } catch (error) {
+      console.error('加载科室失败:', error)
+      ElMessage.error('加载科室失败')
+    } finally {
+      deptLoading.value = false
     }
-  } catch (error) {
-    console.error('加载可预约日期失败:', error)
-    ElMessage.error('加载可预约日期失败')
-  } finally {
-    dateLoading.value = false
   }
-}
+
+  // 选择科室
+  const selectDept = (dept) => {
+    selectedDept.value = dept
+    currentStep.value = 2
+    loadDoctorList()
+  }
+
+  // 加载医生列表
+  const loadDoctorList = async () => {
+    if (!selectedDept.value) return
+    doctorLoading.value = true
+    try {
+      const res = await getUserPage({
+        current: 1,
+        size: 100,
+        deptId: selectedDept.value.deptId,
+        status: 1
+      })
+      doctorList.value = res.data?.list || res.list || []
+    } catch (error) {
+      console.error('加载医生失败:', error)
+      ElMessage.error('加载医生失败')
+    } finally {
+      doctorLoading.value = false
+    }
+  }
+
+  // 选择医生
+  const selectDoctor = async (doctor) => {
+    selectedDoctor.value = doctor
+    currentStep.value = 3
+    await loadAvailableDates()
+  }
+
+  // 加载可预约日期
+  const loadAvailableDates = async () => {
+    if (!selectedDoctor.value) return
+    dateLoading.value = true
+    try {
+      const res = await getAvailableDates(selectedDoctor.value.userId)
+      let dates = res.data || res || []
+
+      const now = new Date()
+      const currentTimeMinutes = now.getHours() * 60 + now.getMinutes()
+
+      const timeSlotStartMap = {
+        '08:00-09:00': 8 * 60,
+        '09:00-10:00': 9 * 60,
+        '10:00-11:00': 10 * 60,
+        '14:00-15:00': 14 * 60,
+        '15:00-16:00': 15 * 60,
+        '16:00-17:00': 16 * 60,
+        '17:00-18:00': 17 * 60
+      }
+
+      // 过滤掉所有时段都已过期的日期
+      const filteredDates = []
+      for (const dateStr of dates) {
+        const dateObj = new Date(dateStr)
+        dateObj.setHours(0, 0, 0, 0)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const isToday = dateObj.getTime() === today.getTime()
+
+        if (!isToday) {
+          filteredDates.push(dateStr)
+        } else {
+          const slotsRes = await getScheduleSlots(selectedDoctor.value.userId, dateStr)
+          const slots = slotsRes.data || slotsRes || []
+
+          const hasFutureSlots = slots.some(slot => {
+            const startMinutes = timeSlotStartMap[slot.timeSlot]
+            if (!startMinutes) return true
+            return startMinutes > currentTimeMinutes
+          })
+
+          if (hasFutureSlots) {
+            filteredDates.push(dateStr)
+          }
+        }
+      }
+
+      // 转换为前端需要的格式
+      availableDates.value = filteredDates.map(dateStr => {
+        const date = new Date(dateStr)
+        return {
+          value: dateStr,
+          week: weekdays[date.getDay()],
+          day: `${date.getMonth() + 1}/${date.getDate()}`
+        }
+      })
+
+      // 默认选中第一个日期
+      if (availableDates.value.length > 0) {
+        selectedDate.value = availableDates.value[0].value
+        await loadScheduleSlots()
+      } else {
+        selectedDate.value = ''
+        timeSlots.value = []
+        ElMessage.warning('暂无可用预约日期')
+      }
+    } catch (error) {
+      console.error('加载可预约日期失败:', error)
+      ElMessage.error('加载可预约日期失败')
+    } finally {
+      dateLoading.value = false
+    }
+  }
 
 // 选择日期
 const selectDate = async (date) => {
@@ -396,13 +439,53 @@ const loadScheduleSlots = async () => {
   scheduleLoading.value = true
   try {
     const res = await getScheduleSlots(selectedDoctor.value.userId, selectedDate.value)
-    const slots = res.data || res || []
+    let slots = res.data || res || []
+
+    // 判断选择的日期是否是今天
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const selectedDateObj = new Date(selectedDate.value)
+    selectedDateObj.setHours(0, 0, 0, 0)
+    const isToday = selectedDateObj.getTime() === today.getTime()
+
+    if (isToday) {
+      const now = new Date()
+      const currentHour = now.getHours()
+      const currentMinute = now.getMinutes()
+      const currentTimeMinutes = currentHour * 60 + currentMinute
+
+      // 时段开始时间映射（根据你的时段格式调整）
+      const timeSlotStartMap = {
+        '08:00-09:00': 8 * 60,
+        '09:00-10:00': 9 * 60,
+        '10:00-11:00': 10 * 60,
+        '14:00-15:00': 14 * 60,
+        '15:00-16:00': 15 * 60,
+        '16:00-17:00': 16 * 60,
+        '17:00-18:00': 17 * 60
+      }
+
+      // 只保留开始时间 > 当前时间的时段
+      slots = slots.filter(slot => {
+        const startMinutes = timeSlotStartMap[slot.timeSlot]
+        if (!startMinutes) return true // 无法识别的时段，保留
+        return startMinutes > currentTimeMinutes
+      })
+    }
+
     timeSlots.value = slots
+
     // 如果有可用时段，默认选中第一个
     const firstAvailable = slots.find(slot => slot.available)
     if (firstAvailable) {
       selectedScheduleId.value = firstAvailable.scheduleId
       selectedTimeSlot.value = firstAvailable.timeSlot
+    } else {
+      selectedScheduleId.value = null
+      selectedTimeSlot.value = ''
+      if (isToday && slots.length === 0) {
+        ElMessage.warning('今天已无可用时段，请选择其他日期')
+      }
     }
   } catch (error) {
     console.error('加载排班时段失败:', error)
@@ -490,11 +573,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 样式保持不变，省略... */
 .appointment-page {
   padding: 24px 28px 32px;
   min-height: 100%;
-  background: #f5f0e8;
 }
 
 .page-header {
@@ -514,9 +595,9 @@ onMounted(() => {
   text-align: center;
   font-size: 22px;
   color: #fff;
-  background: linear-gradient(135deg, #8b6f47, #6b4f2a);
+  background: linear-gradient(135deg, #e8a54b, #d48232);
   border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(107, 79, 42, 0.35);
+  box-shadow: 0 4px 14px rgba(212, 130, 50, 0.35);
 }
 
 .page-title {
@@ -524,6 +605,7 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 700;
   color: #2c1810;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .page-desc {
@@ -532,16 +614,18 @@ onMounted(() => {
   color: #5c4a32;
 }
 
-/* 步骤条 */
+/* 步骤条 - 玻璃质感 */
 .steps-container {
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 28px;
-  background: #fff;
-  padding: 20px 40px;
+  background: rgba(255, 252, 250, 0.65);
+  backdrop-filter: blur(12px);
   border-radius: 40px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 20px 40px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 12px rgba(61, 41, 20, 0.06);
 }
 
 .step-item {
@@ -559,8 +643,8 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   border-radius: 50%;
-  background: #e8e0d5;
-  color: #8b6f47;
+  background: #f0e4d4;
+  color: #8b7a68;
   transition: all 0.3s;
 }
 
@@ -596,12 +680,16 @@ onMounted(() => {
   background: linear-gradient(90deg, #d48232, #e8a54b);
 }
 
-/* 内容卡片 */
+/* 内容卡片 - 玻璃毛玻璃效果 */
 .content-card {
-  background: #fff;
-  border-radius: 20px;
+  border-radius: 16px;
+  background: rgba(255, 252, 250, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 24px rgba(61, 41, 20, 0.1);
+  overflow: hidden;
   padding: 24px 28px;
-  box-shadow: 0 8px 30px rgba(61, 41, 20, 0.08);
   min-height: 500px;
 }
 
@@ -642,6 +730,19 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
+.search-input :deep(.el-input__wrapper) {
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid rgba(139, 90, 43, 0.2);
+  box-shadow: none;
+}
+
+.search-input :deep(.el-input__wrapper:hover),
+.search-input :deep(.el-input__wrapper.is-focus) {
+  border-color: rgba(232, 165, 75, 0.5);
+  box-shadow: 0 0 0 1px rgba(232, 165, 75, 0.2);
+}
+
 .search-input {
   width: 280px;
 }
@@ -661,7 +762,7 @@ onMounted(() => {
   border: 1px solid #f0e4d4;
   border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .dept-card:hover {
@@ -881,7 +982,8 @@ onMounted(() => {
 /* 确认信息 */
 .confirm-card {
   background: #fefaf5;
-  border-radius: 16px;
+  border: 1px solid #f0e4d4;
+  border-radius: 14px;
   padding: 24px;
 }
 
@@ -940,7 +1042,15 @@ onMounted(() => {
 
 .btn-prev {
   border-radius: 10px;
-  border-color: #e0d4c4;
+  border-color: #f56c6c;
+  color: #f56c6c;
+  background: rgba(245, 108, 108, 0.1);
+}
+
+.btn-prev:hover {
+  background: rgba(245, 108, 108, 0.2);
+  border-color: #f56c6c;
+  color: #f56c6c;
 }
 
 .btn-next, .btn-submit {
@@ -948,6 +1058,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #e8a54b, #d48232);
   border: none;
   color: #fff;
+  box-shadow: 0 4px 12px rgba(212, 130, 50, 0.3);
 }
 
 .btn-next:hover, .btn-submit:hover {
@@ -972,6 +1083,15 @@ onMounted(() => {
 }
 
 /* 成功弹窗 */
+.success-dialog :deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 252, 250, 0.98);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 40px rgba(61, 41, 20, 0.15), 0 0 0 1px rgba(139, 90, 43, 0.08);
+}
+
 .success-dialog :deep(.el-dialog__body) {
   padding: 0;
 }
@@ -1011,15 +1131,25 @@ onMounted(() => {
 
 .btn-view {
   border-radius: 10px;
-  background: #f0e4d4;
-  border: none;
+  border-color: #e0d4c4;
   color: #8b6f47;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.btn-view:hover {
+  border-color: #e8a54b;
+  color: #d48232;
 }
 
 .btn-continue {
   border-radius: 10px;
   background: linear-gradient(135deg, #e8a54b, #d48232);
   border: none;
+  color: #fff;
+}
+
+.btn-continue:hover {
+  background: linear-gradient(135deg, #d48232, #c07020);
   color: #fff;
 }
 </style>
