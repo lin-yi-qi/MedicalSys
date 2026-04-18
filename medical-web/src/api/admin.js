@@ -313,10 +313,10 @@ export function cancelAdminAppointment(id) {
   })
 }
 
-// ==================== 排班相关 ====================
+// ==================== 排班相关（患者端） ====================
 
 /**
- * 获取医生可预约日期
+ * 获取医生可预约日期（日历高亮用）
  */
 export function getAvailableDates(userId) {
   return request({
@@ -381,7 +381,6 @@ export function getAppointmentDetail(appointmentId) {
   })
 }
 
-
 /**
  * 支付预约
  */
@@ -402,3 +401,86 @@ export function checkInAppointment(appointmentId) {
   })
 }
 
+// ==================== 医生端工作台 ====================
+
+export function getDoctorStatistics() {
+  return request({
+    url: '/api/doctor/statistics',
+    method: 'get'
+  })
+}
+
+export function getTodayQueue(params) {
+  return request({
+    url: '/api/doctor/queue/today',
+    method: 'get',
+    params
+  })
+}
+
+// ==================== 医生端病历管理 ====================
+
+export function saveMedicalRecord(data) {
+  return request({
+    url: '/api/doctor/medical-record/save',
+    method: 'post',
+    data
+  })
+}
+
+export function getMedicalRecordDetail(recordId) {
+  return request({
+    url: `/api/doctor/medical-record/${recordId}`,
+    method: 'get'
+  })
+}
+
+export function getPatientMedicalRecords(patientId) {
+  return request({
+    url: `/api/doctor/medical-record/patient/${patientId}`,
+    method: 'get'
+  })
+}
+
+// ==================== 医生端处方管理 ====================
+
+export function submitPrescription(data) {
+  return request({
+    url: '/api/doctor/prescription/submit',
+    method: 'post',
+    data
+  })
+}
+
+export function getPrescriptionDetail(prescriptionId) {
+  return request({
+    url: `/api/doctor/prescription/${prescriptionId}`,
+    method: 'get'
+  })
+}
+
+// ==================== 医生端接诊管理 ====================
+
+export function startConsultation(appointmentId) {
+  return request({
+    url: '/api/doctor/consultation/start',
+    method: 'post',
+    params: { appointmentId }
+  })
+}
+
+export function endConsultation(appointmentId) {
+  return request({
+    url: '/api/doctor/consultation/end',
+    method: 'post',
+    params: { appointmentId }
+  })
+}
+
+export function callNextPatient(appointmentId) {
+  return request({
+    url: '/api/doctor/queue/call',
+    method: 'post',
+    params: { appointmentId }
+  })
+}
