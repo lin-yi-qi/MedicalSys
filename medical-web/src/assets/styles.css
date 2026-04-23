@@ -99,6 +99,50 @@ body.el-popup-parent--hidden .layout-container .el-main {
   min-width: 64px;
 }
 
+/*
+ * 折叠侧栏：Element Plus 仅对 el-icon 做列宽/居中，本项目菜单用 Font Awesome 的 <i>，需补齐。
+ * 全局菜单项的 margin:2px 8px 在 64px 宽内会挤压行宽，图标相对顶栏 logo 偏移。
+ */
+.el-aside.collapsed .el-menu--collapse > .el-menu-item,
+.el-aside.collapsed .el-menu--collapse > .el-sub-menu .el-sub-menu__title {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  justify-content: center;
+}
+
+.el-aside.collapsed .el-menu--collapse > .el-menu-item .el-menu-tooltip__trigger {
+  justify-content: center;
+}
+
+.el-aside.collapsed .el-menu--collapse > .el-menu-item > i[class*='fa-'],
+.el-aside.collapsed .el-menu--collapse > .el-sub-menu .el-sub-menu__title > i[class*='fa-'] {
+  margin: 0 !important;
+  width: var(--el-menu-icon-width);
+  min-width: var(--el-menu-icon-width);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+  font-size: 18px;
+}
+
+/* 展开侧栏：FA 图标字形宽度不一，需与 Element Plus 默认 el-icon 相同列宽与右边距，文字才能左缘对齐 */
+.el-aside .el-menu:not(.el-menu--collapse) .el-menu-item > i[class*='fa-'],
+.el-aside .el-menu:not(.el-menu--collapse) .el-sub-menu__title > i[class*='fa-'] {
+  flex-shrink: 0;
+  width: var(--el-menu-icon-width);
+  min-width: var(--el-menu-icon-width);
+  margin-right: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 18px;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
 .el-main {
   background: rgba(255, 252, 245, 0.25);
   backdrop-filter: blur(8px);
