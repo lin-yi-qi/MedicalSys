@@ -211,6 +211,18 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     }
 
     @Override
+    public PrescriptionVo getPrescriptionDetailForPatient(Long id, Long patientId) {
+        Prescription prescription = prescriptionMapper.selectById(id);
+        if (prescription == null) {
+            throw new BusinessWarningException("处方不存在");
+        }
+        if (!patientId.equals(prescription.getPatientId())) {
+            throw new BusinessWarningException("无权查看此处方");
+        }
+        return getPrescriptionDetail(id);
+    }
+
+    @Override
     public List<PrescriptionVo> getPrescriptionsByRecordId(Long recordId) {
         List<Prescription> prescriptions = prescriptionMapper.selectList(
                 new LambdaQueryWrapper<Prescription>()

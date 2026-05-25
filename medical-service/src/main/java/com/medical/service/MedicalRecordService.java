@@ -25,6 +25,11 @@ public interface MedicalRecordService {
     MedicalRecordVo getRecordDetailForDoctor(Long recordId, Long doctorId);
 
     /**
+     * 患者查看自己的病历详情（校验归属）
+     */
+    MedicalRecordVo getRecordDetailForPatient(Long recordId, Long patientId);
+
+    /**
      * 保存病历
      */
     MedicalRecordVo saveRecord(MedicalRecordSaveDto dto, Long doctorId, String doctorName);

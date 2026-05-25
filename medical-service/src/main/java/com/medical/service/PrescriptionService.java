@@ -13,6 +13,7 @@ public interface PrescriptionService {
 
     PrescriptionVo getPrescriptionDetail(Long id);
     PrescriptionVo getPrescriptionDetailForDoctor(Long id, Long doctorId);
+    PrescriptionVo getPrescriptionDetailForPatient(Long id, Long patientId);
 
     List<PrescriptionVo> getPrescriptionsByRecordId(Long recordId);
     List<PrescriptionVo> getPrescriptionsByRecordIdForDoctor(Long recordId, Long doctorId);

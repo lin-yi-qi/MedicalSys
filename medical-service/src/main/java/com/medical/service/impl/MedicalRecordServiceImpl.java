@@ -86,6 +86,21 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     }
 
     @Override
+    public MedicalRecordVo getRecordDetailForPatient(Long recordId, Long patientId) {
+        MedicalRecord record = medicalRecordMapper.selectById(recordId);
+        if (record == null) {
+            throw new BusinessWarningException("病历不存在");
+        }
+        if (!patientId.equals(record.getPatientId())) {
+            throw new BusinessWarningException("无权查看该病历");
+        }
+        if (record.getStatus() != null && record.getStatus() == 1) {
+            throw new BusinessWarningException("病历尚未归档，暂不可查看");
+        }
+        return buildMedicalRecordVo(record);
+    }
+
+    @Override
     @Transactional
     public MedicalRecordVo saveRecord(MedicalRecordSaveDto dto, Long doctorId, String doctorName) {
         MedicalRecord record;
