@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Placeholder from '@/views/Placeholder.vue'
+import { ElMessage } from 'element-plus'
 import { resolveDefaultHomePath } from '@/config/menu-config'
+import { canAccessRoute, getRolesFromStorage } from '@/utils/route-permissions'
 
 const routes = [
   {
@@ -136,18 +138,14 @@ router.beforeEach((to, from, next) => {
         next({ path: '/login', query: { redirect: to.fullPath } })
         return
     }
-    if (to.meta.requiresSuperAdmin && userInfo) {
-        try {
-            const roles = JSON.parse(userInfo).roles || []
-            if (!roles.includes('SUPER_ADMIN')) {
-                next({ path: '/admin/dashboard', replace: true })
-                return
-            }
-        } catch {
-            next({ path: '/admin/dashboard', replace: true })
-            return
-        }
+
+    const roles = getRolesFromStorage()
+    if (userInfo && !canAccessRoute(to, roles)) {
+        ElMessage.warning('无权访问该页面')
+        next({ path: resolveDefaultHomePath(), replace: true })
+        return
     }
+
     next()
 })
 
