@@ -12,37 +12,104 @@
 
     <div class="content-card">
       <div class="toolbar">
-        <el-select v-model="deptId" class="filter-select" placeholder="科室" clearable filterable style="width: 180px" @change="handleDeptChange">
-          <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.name" :value="d.deptId" />
-        </el-select>
-        <el-select v-model="doctorId" class="filter-select" placeholder="医生" clearable filterable style="width: 180px" @change="loadData">
-          <el-option v-for="d in doctorOptions" :key="d.doctorId" :label="`${d.name || d.username} (${d.username})`" :value="d.doctorId" />
-        </el-select>
-        <el-date-picker v-model="dateFilter" class="filter-select" type="date" value-format="YYYY-MM-DD" placeholder="排班日期" @change="loadData" />
-        <el-select v-model="statusFilter" class="filter-select" placeholder="状态" clearable style="width: 120px" @change="loadData">
-          <el-option :value="1" label="可预约" />
-          <el-option :value="0" label="停诊" />
-        </el-select>
-        <el-button @click="handleDisableExpired">停用过期排班</el-button>
-        <el-button class="add-btn" @click="openCreate">新增排班</el-button>
+        <div class="search-wrap">
+          <el-select
+            v-model="deptId"
+            class="filter-select"
+            placeholder="科室"
+            clearable
+            filterable
+            size="large"
+            style="width: 180px"
+            @change="handleDeptChange"
+          >
+            <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.name" :value="d.deptId" />
+          </el-select>
+          <el-select
+            v-model="doctorId"
+            class="filter-select"
+            placeholder="医生"
+            clearable
+            filterable
+            size="large"
+            style="width: 200px"
+            @change="loadData"
+          >
+            <el-option
+              v-for="d in doctorOptions"
+              :key="d.doctorId"
+              :label="`${d.name || d.username} (${d.username})`"
+              :value="d.doctorId"
+            />
+          </el-select>
+          <el-date-picker
+            v-model="dateFilter"
+            class="filter-date"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="排班日期"
+            size="large"
+            @change="loadData"
+          />
+          <el-select
+            v-model="statusFilter"
+            class="filter-select"
+            placeholder="状态"
+            clearable
+            size="large"
+            style="width: 120px"
+            @change="loadData"
+          >
+            <el-option :value="1" label="可预约" />
+            <el-option :value="0" label="停诊" />
+          </el-select>
+          <el-button class="search-btn" @click="loadData">
+            <i class="fa-solid fa-search"></i>
+            查询
+          </el-button>
+        </div>
+        <div class="toolbar-actions">
+          <el-button class="btn-secondary" @click="handleDisableExpired">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            停用过期排班
+          </el-button>
+          <el-button class="add-user-btn" @click="openCreate">
+            <i class="fa-solid fa-plus"></i>
+            新增排班
+          </el-button>
+        </div>
       </div>
 
-      <el-table :data="tableData" v-loading="loading" class="data-table" :header-cell-style="headerCellStyle">
-        <el-table-column prop="scheduleId" label="ID" width="72" />
+      <div class="table-wrap" v-loading="loading" element-loading-text="加载中...">
+      <el-table
+        :data="tableData"
+        class="data-table"
+        :header-cell-style="headerCellStyle"
+        :row-class-name="tableRowClassName"
+      >
+        <el-table-column prop="scheduleId" label="ID" width="72" align="center">
+          <template #default="{ row }">
+            <span class="cell-id">{{ row.scheduleId }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="deptName" label="科室" min-width="120" />
         <el-table-column prop="doctorName" label="医生" min-width="120">
           <template #default="{ row }">{{ row.doctorName || '-' }}{{ row.doctorTitle ? `（${row.doctorTitle}）` : '' }}</template>
         </el-table-column>
-        <el-table-column prop="scheduleDate" label="日期" width="120" />
-        <el-table-column prop="scheduleTimeSlot" label="时段" width="120" />
-        <el-table-column prop="totalSlots" label="总号源" width="90" />
-        <el-table-column prop="bookedSlots" label="已约" width="80" />
-        <el-table-column prop="remainingSlots" label="剩余" width="80" />
-        <el-table-column prop="statusText" label="状态" width="90" />
-        <el-table-column label="操作" width="140" fixed="right">
+        <el-table-column prop="scheduleDate" label="日期" width="120" align="center" />
+        <el-table-column prop="scheduleTimeSlot" label="时段" width="120" align="center" />
+        <el-table-column prop="totalSlots" label="总号源" width="90" align="center" />
+        <el-table-column prop="bookedSlots" label="已约" width="80" align="center" />
+        <el-table-column prop="remainingSlots" label="剩余" width="80" align="center" />
+        <el-table-column prop="statusText" label="状态" width="90" align="center" />
+        <el-table-column label="操作" width="140" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="removeRow(row)">删除</el-button>
+            <el-button link type="primary" size="small" @click="openEdit(row)">
+              <i class="fa-solid fa-pen"></i> 编辑
+            </el-button>
+            <el-button link type="danger" size="small" @click="removeRow(row)">
+              <i class="fa-solid fa-trash"></i> 删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -59,15 +126,33 @@
           @current-change="loadData"
         />
       </div>
+      </div>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑排班' : '新增排班'" width="520px" @close="resetForm">
+    <el-dialog
+      v-model="dialogVisible"
+      width="520px"
+      class="edit-dialog"
+      :close-on-click-modal="false"
+      align-center
+      :append-to-body="true"
+      @close="resetForm"
+    >
+      <template #header>
+        <div class="edit-dialog-header">
+          <i class="fa-solid fa-calendar-plus dialog-icon"></i>
+          <div>
+            <span class="dialog-title">{{ isEdit ? '编辑排班' : '新增排班' }}</span>
+            <span class="dialog-subtitle">{{ isEdit ? '修改号源与排班状态' : '支持单条新增或一键批量排班' }}</span>
+          </div>
+        </div>
+      </template>
       <el-radio-group v-if="!isEdit" v-model="dialogMode" style="margin-bottom: 12px">
         <el-radio-button label="single">单条新增</el-radio-button>
         <el-radio-button label="batch">一键排班</el-radio-button>
       </el-radio-group>
 
-      <el-form v-if="isEdit || dialogMode === 'single'" ref="formRef" :model="form" :rules="rules" label-position="top">
+      <el-form v-if="isEdit || dialogMode === 'single'" ref="formRef" :model="form" :rules="rules" label-position="top" class="edit-form">
         <el-form-item label="科室" prop="deptId">
           <el-select v-model="form.deptId" filterable clearable style="width: 100%" @change="loadSingleDoctors">
             <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.name" :value="d.deptId" />
@@ -106,7 +191,7 @@
         </el-form-item>
       </el-form>
 
-        <el-form v-else ref="batchFormRef" :model="batchForm" :rules="batchRules" label-position="top">
+        <el-form v-else ref="batchFormRef" :model="batchForm" :rules="batchRules" label-position="top" class="edit-form">
           <el-form-item label="科室（可多选）" prop="deptIds">
           <el-select v-model="batchForm.deptIds" filterable clearable multiple collapse-tags style="width: 100%" @change="loadDialogDoctors">
             <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.name" :value="d.deptId" />
@@ -168,8 +253,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button class="btn-cancel" @click="dialogVisible = false">取消</el-button>
-        <el-button class="btn-save" :loading="saving" @click="submitForm">{{ isEdit || dialogMode === 'single' ? '保存' : '一键排班' }}</el-button>
+        <div class="edit-dialog-footer">
+          <el-button class="btn-cancel" @click="dialogVisible = false">取消</el-button>
+          <el-button class="btn-save" :loading="saving" @click="submitForm">{{ isEdit || dialogMode === 'single' ? '保存' : '一键排班' }}</el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -241,6 +328,8 @@ const headerCellStyle = {
   fontSize: '13px',
   borderBottom: '1px solid rgba(139, 90, 43, 0.15)'
 }
+
+const tableRowClassName = ({ rowIndex }) => (rowIndex % 2 === 1 ? 'striped-row' : '')
 
 const todayStart = new Date()
 todayStart.setHours(0, 0, 0, 0)
@@ -465,60 +554,4 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
-.schedule-page { padding: 24px 28px 32px; min-height: 100%; }
-.page-header { margin-bottom: 20px; }
-.header-left { display: flex; align-items: center; gap: 14px; }
-.page-icon {
-  width: 48px; height: 48px; line-height: 48px; text-align: center; font-size: 22px; color: #fff;
-  background: linear-gradient(135deg, #8b6f47, #6b4f2a); border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(107, 79, 42, 0.35);
-}
-.page-title { margin: 0; font-size: 20px; font-weight: 700; color: #2c1810; }
-.page-desc { margin: 4px 0 0; font-size: 13px; color: #5c4a32; }
-.content-card {
-  background: rgba(255,252,248,.95); border-radius: 16px; padding: 20px 22px 24px;
-  box-shadow: 0 8px 40px rgba(61,41,20,.08), 0 0 0 1px rgba(139,90,43,.08);
-}
-.toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
-
-.filter-select :deep(.el-input__wrapper),
-.filter-select :deep(.el-select__wrapper) {
-  border-radius: 10px !important;
-  background: rgba(255, 255, 255, 0.75) !important;
-  border: 1px solid rgba(139, 90, 43, 0.2) !important;
-  box-shadow: none !important;
-}
-
-.filter-select :deep(.el-input__wrapper:hover),
-.filter-select :deep(.el-select__wrapper:hover),
-.filter-select :deep(.el-input__wrapper.is-focus),
-.filter-select :deep(.el-select__wrapper.is-focused) {
-  border-color: rgba(232, 165, 75, 0.6) !important;
-  box-shadow: 0 0 0 2px rgba(232, 165, 75, 0.15) !important;
-}
-
-.add-btn {
-  margin-left: auto;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #e8a54b, #d48232);
-  border: none;
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(212, 130, 50, 0.3);
-}
-
-.data-table :deep(.el-table__row:hover > td) {
-  background: rgba(232, 165, 75, 0.08) !important;
-}
-
-.pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }
-
-.btn-cancel { border-radius: 10px; }
-
-.btn-save {
-  border-radius: 10px;
-  background: linear-gradient(135deg, #e8a54b, #d48232);
-  border: none;
-  color: #fff;
-}
-</style>
+<style scoped src="@/assets/admin-management-page.css"></style>

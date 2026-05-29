@@ -41,12 +41,10 @@
             <el-option :value="0" label="停用" />
           </el-select>
         </div>
-        <div class="toolbar-actions">
-          <el-button class="add-btn" @click="openCreate">
-            <i class="fa-solid fa-plus"></i>
-            新增科室
-          </el-button>
-        </div>
+        <el-button class="add-user-btn" @click="openCreate">
+          <i class="fa-solid fa-plus"></i>
+          新增科室
+        </el-button>
       </div>
 
       <div class="table-wrap" v-loading="loading" element-loading-text="加载中...">
@@ -413,105 +411,12 @@ onMounted(() => {
 })
 </script>
 
+<style scoped src="@/assets/admin-management-page.css"></style>
 <style scoped>
-.dept-list-page {
-  padding: 24px 28px 32px;
-  min-height: 100%;
-}
-
-.page-header {
-  margin-bottom: 20px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.page-icon {
-  width: 48px;
-  height: 48px;
-  line-height: 48px;
-  text-align: center;
-  font-size: 22px;
-  color: #fff;
-  background: linear-gradient(135deg, #8b6f47, #6b4f2a);
-  border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(107, 79, 42, 0.35);
-}
-
-.page-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #2c1810;
-}
-
-.page-desc {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: #5c4a32;
-}
-
-.content-card {
-  background: rgba(255, 252, 248, 0.95);
-  border-radius: 16px;
-  padding: 20px 22px 24px;
-  box-shadow: 0 8px 40px rgba(61, 41, 20, 0.08), 0 0 0 1px rgba(139, 90, 43, 0.08);
-}
-
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 18px;
-}
-
-.toolbar-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.search-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.search-icon {
-  color: #8b6f47;
-}
-
-.search-input {
-  width: 220px;
-}
-
-.search-btn,
-.add-btn {
-  border-radius: 10px;
-  background: linear-gradient(135deg, #e8a54b, #d48232);
-  border: none;
-  color: #fff;
-}
-
-.filter-select :deep(.el-input__wrapper) {
-  border-radius: 10px;
-}
-
-.data-table {
-  width: 100%;
-}
-
-.cell-id,
 .cell-code {
   font-family: ui-monospace, monospace;
   font-size: 12px;
-  color: #5c4a32;
+  color: #8b5a2b;
 }
 
 .dept-name-wrap {
@@ -553,94 +458,6 @@ onMounted(() => {
   color: #b7a58f;
   margin: 0 2px;
   font-size: 12px;
-}
-
-.cell-time {
-  font-size: 12px;
-  color: #6b5a48;
-}
-
-.status-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 6px;
-  vertical-align: middle;
-}
-
-.status-dot.enabled {
-  background: #67c23a;
-}
-
-.status-dot.disabled {
-  background: #c0c4cc;
-}
-
-.pagination-wrap {
-  margin-top: 16px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.edit-dialog-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.dialog-icon {
-  width: 44px;
-  height: 44px;
-  line-height: 44px;
-  text-align: center;
-  font-size: 20px;
-  color: #fff;
-  background: linear-gradient(135deg, #8b6f47, #6b4f2a);
-  border-radius: 12px;
-}
-
-.dialog-title {
-  display: block;
-  font-size: 17px;
-  font-weight: 700;
-  color: #2c1810;
-}
-
-.dialog-subtitle {
-  font-size: 12px;
-  color: #5c4a32;
-  margin-top: 2px;
-}
-
-.edit-dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.btn-cancel {
-  border-radius: 10px;
-}
-
-.btn-save {
-  border-radius: 10px;
-  background: linear-gradient(135deg, #e8a54b, #d48232);
-  border: none;
-  color: #fff;
-}
-
-.dept-form-dialog :deep(.el-dialog__header) {
-  padding: 16px 20px 12px;
-  margin: 0;
-}
-
-.dept-form-dialog :deep(.el-dialog__body) {
-  padding: 8px 20px 4px;
-}
-
-.dept-form-dialog :deep(.el-dialog__footer) {
-  padding: 12px 20px 16px;
 }
 
 .dept-edit-form :deep(.el-form-item) {

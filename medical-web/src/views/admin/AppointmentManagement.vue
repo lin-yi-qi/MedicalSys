@@ -12,68 +12,134 @@
 
     <div class="content-card">
       <div class="toolbar">
-        <el-input
-          v-model="keyword"
-          class="search-input"
-          clearable
-          placeholder="预约单号/时段"
-          style="width: 220px"
-          @clear="loadData"
-          @keyup.enter="loadData"
-        />
-        <el-select v-model="deptId" class="filter-select" clearable filterable placeholder="科室" style="width: 160px" @change="handleDeptChange">
-          <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.name" :value="d.deptId" />
-        </el-select>
-        <el-select v-model="doctorId" class="filter-select" clearable filterable placeholder="医生" style="width: 180px" @change="loadData">
-          <el-option v-for="d in doctorOptions" :key="d.doctorId" :label="`${d.name || d.username} (${d.username})`" :value="d.doctorId" />
-        </el-select>
-        <el-date-picker v-model="dateFilter" class="filter-select" type="date" value-format="YYYY-MM-DD" placeholder="就诊日期" @change="loadData" />
-        <el-select v-model="statusFilter" class="filter-select" clearable placeholder="状态" style="width: 120px" @change="loadData">
-          <el-option :value="0" label="待支付" />
-          <el-option :value="1" label="待就诊" />
-          <el-option :value="2" label="已就诊" />
-          <el-option :value="3" label="已取消" />
-          <el-option :value="4" label="爽约" />
-        </el-select>
-        <el-button @click="handleExpireOverdue">处理过期预约</el-button>
+        <div class="search-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <el-input
+            v-model="keyword"
+            class="search-input"
+            clearable
+            placeholder="预约单号 / 时段"
+            @clear="loadData"
+            @keyup.enter="loadData"
+          />
+          <el-button class="search-btn" @click="loadData">
+            <i class="fa-solid fa-search"></i>
+            搜索
+          </el-button>
+          <el-select
+            v-model="deptId"
+            class="filter-select"
+            clearable
+            filterable
+            placeholder="科室"
+            size="large"
+            style="width: 160px"
+            @change="handleDeptChange"
+          >
+            <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.name" :value="d.deptId" />
+          </el-select>
+          <el-select
+            v-model="doctorId"
+            class="filter-select"
+            clearable
+            filterable
+            placeholder="医生"
+            size="large"
+            style="width: 200px"
+            @change="loadData"
+          >
+            <el-option
+              v-for="d in doctorOptions"
+              :key="d.doctorId"
+              :label="`${d.name || d.username} (${d.username})`"
+              :value="d.doctorId"
+            />
+          </el-select>
+          <el-date-picker
+            v-model="dateFilter"
+            class="filter-date"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="就诊日期"
+            size="large"
+            @change="loadData"
+          />
+          <el-select
+            v-model="statusFilter"
+            class="filter-select"
+            clearable
+            placeholder="状态"
+            size="large"
+            style="width: 120px"
+            @change="loadData"
+          >
+            <el-option :value="0" label="待支付" />
+            <el-option :value="1" label="待就诊" />
+            <el-option :value="2" label="已就诊" />
+            <el-option :value="3" label="已取消" />
+            <el-option :value="4" label="爽约" />
+          </el-select>
+        </div>
+        <el-button class="btn-secondary" @click="handleExpireOverdue">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          处理过期预约
+        </el-button>
       </div>
 
-      <el-table :data="tableData" v-loading="loading" class="data-table" :header-cell-style="headerCellStyle">
-        <el-table-column prop="appointmentNo" label="预约单号" min-width="165" />
+      <div class="table-wrap" v-loading="loading" element-loading-text="加载中...">
+      <el-table
+        :data="tableData"
+        class="data-table"
+        :header-cell-style="headerCellStyle"
+        :row-class-name="tableRowClassName"
+      >
+        <el-table-column prop="appointmentNo" label="预约单号" min-width="165">
+          <template #default="{ row }">
+            <span class="cell-id">{{ row.appointmentNo }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="deptName" label="科室" width="120" />
         <el-table-column prop="doctorName" label="医生" min-width="120">
           <template #default="{ row }">{{ row.doctorName || '-' }}{{ row.doctorTitle ? `（${row.doctorTitle}）` : '' }}</template>
         </el-table-column>
         <el-table-column prop="patientName" label="患者" width="100" />
-        <el-table-column label="就诊时间" width="190">
-          <template #default="{ row }">{{ row.appointmentDate }} {{ row.timeSlot }}</template>
+        <el-table-column label="就诊时间" width="190" align="center">
+          <template #default="{ row }">
+            <span class="cell-time">{{ row.appointmentDate }} {{ row.timeSlot }}</span>
+          </template>
         </el-table-column>
-        <el-table-column prop="feeAmount" label="费用" width="90">
+        <el-table-column prop="feeAmount" label="费用" width="90" align="right">
           <template #default="{ row }">¥{{ row.feeAmount ?? '-' }}</template>
         </el-table-column>
-        <el-table-column prop="statusText" label="状态" width="100" />
-        <el-table-column prop="createdTime" label="创建时间" width="165" />
-        <el-table-column label="操作" width="150" fixed="right" align="center">
+        <el-table-column prop="statusText" label="状态" width="100" align="center" />
+        <el-table-column prop="createdTime" label="创建时间" width="165" align="center">
           <template #default="{ row }">
-            <div style="align-items: center;">
-              <el-button link type="primary" @click="openDetail(row)">详情</el-button>
-              <el-button
-                  v-if="row.status === 1 && row.paid === 1 && !row.queueNo"
-                  link
-                  type="success"
-                  @click="checkinRow(row)"
-              >
-                签到
-              </el-button>
-              <el-button
-                  v-if="row.status === 1"
-                  link
-                  type="danger"
-                  @click="cancelRow(row)"
-              >
-                取消
-              </el-button>
-            </div>
+            <span class="cell-time">{{ row.createdTime }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="180" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="openDetail(row)">
+              <i class="fa-solid fa-eye"></i> 详情
+            </el-button>
+            <el-button
+              v-if="row.status === 1 && row.paid === 1 && !row.queueNo"
+              link
+              type="success"
+              size="small"
+              @click="checkinRow(row)"
+            >
+              <i class="fa-solid fa-check"></i> 签到
+            </el-button>
+            <el-button
+              v-if="row.status === 1"
+              link
+              type="danger"
+              size="small"
+              @click="cancelRow(row)"
+            >
+              <i class="fa-solid fa-ban"></i> 取消
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -90,9 +156,25 @@
           @current-change="loadData"
         />
       </div>
+      </div>
     </div>
 
-    <el-dialog v-model="detailVisible" title="预约详情" width="560px">
+    <el-dialog
+      v-model="detailVisible"
+      width="560px"
+      class="edit-dialog"
+      align-center
+      :append-to-body="true"
+    >
+      <template #header>
+        <div class="edit-dialog-header">
+          <i class="fa-solid fa-file-lines dialog-icon"></i>
+          <div>
+            <span class="dialog-title">预约详情</span>
+            <span class="dialog-subtitle">查看预约单完整信息</span>
+          </div>
+        </div>
+      </template>
       <el-descriptions :column="2" border>
         <el-descriptions-item label="预约单号" :span="2">{{ detail.appointmentNo || '-' }}</el-descriptions-item>
         <el-descriptions-item label="科室">{{ detail.deptName || '-' }}</el-descriptions-item>
@@ -106,7 +188,9 @@
         <el-descriptions-item label="创建时间" :span="2">{{ detail.createdTime || '-' }}</el-descriptions-item>
       </el-descriptions>
       <template #footer>
-        <el-button @click="detailVisible = false">关闭</el-button>
+        <div class="edit-dialog-footer">
+          <el-button class="btn-cancel" @click="detailVisible = false">关闭</el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -164,6 +248,8 @@ const headerCellStyle = {
   fontSize: '13px',
   borderBottom: '1px solid rgba(139, 90, 43, 0.15)'
 }
+
+const tableRowClassName = ({ rowIndex }) => (rowIndex % 2 === 1 ? 'striped-row' : '')
 
 const loadDepts = async () => {
   const list = await getDeptOptions()
@@ -295,55 +381,4 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
-.appointment-page { padding: 24px 28px 32px; min-height: 100%; }
-.page-header { margin-bottom: 20px; }
-.header-left { display: flex; align-items: center; gap: 14px; }
-.page-icon {
-  width: 48px; height: 48px; line-height: 48px; text-align: center; font-size: 22px; color: #fff;
-  background: linear-gradient(135deg, #8b6f47, #6b4f2a); border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(107, 79, 42, 0.35);
-}
-.page-title { margin: 0; font-size: 20px; font-weight: 700; color: #2c1810; }
-.page-desc { margin: 4px 0 0; font-size: 13px; color: #5c4a32; }
-.content-card {
-  background: rgba(255,252,248,.95); border-radius: 16px; padding: 20px 22px 24px;
-  box-shadow: 0 8px 40px rgba(61,41,20,.08), 0 0 0 1px rgba(139,90,43,.08);
-}
-.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
-
-.search-input :deep(.el-input__wrapper) {
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(139, 90, 43, 0.2);
-  box-shadow: none;
-}
-
-.search-input :deep(.el-input__wrapper:hover),
-.search-input :deep(.el-input__wrapper.is-focus) {
-  border-color: rgba(232, 165, 75, 0.6);
-  box-shadow: 0 0 0 2px rgba(232, 165, 75, 0.15);
-}
-
-.filter-select :deep(.el-input__wrapper),
-.filter-select :deep(.el-select__wrapper) {
-  border-radius: 10px !important;
-  background: rgba(255, 255, 255, 0.75) !important;
-  border: 1px solid rgba(139, 90, 43, 0.2) !important;
-  box-shadow: none !important;
-}
-
-.filter-select :deep(.el-input__wrapper:hover),
-.filter-select :deep(.el-select__wrapper:hover),
-.filter-select :deep(.el-input__wrapper.is-focus),
-.filter-select :deep(.el-select__wrapper.is-focused) {
-  border-color: rgba(232, 165, 75, 0.6) !important;
-  box-shadow: 0 0 0 2px rgba(232, 165, 75, 0.15) !important;
-}
-
-.data-table :deep(.el-table__row:hover > td) {
-  background: rgba(232, 165, 75, 0.08) !important;
-}
-
-.pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }
-</style>
+<style scoped src="@/assets/admin-management-page.css"></style>
